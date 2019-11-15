@@ -8,8 +8,11 @@ workrootdir=...
 % input folder
 outdir=workrootdir;%['/Users/rpr061/Documents/localtestarea/CARBON-REP-042020/'];
 
+% Read synthesis, all or both?
+whichsocat='all'; % 'all','synthesis','both'
 
-%% Read SOCATv2019 synthesis file
+% Read SOCATv2019 synthesis file
+if strcmp(whichsocat,'synthesis') | strcmp(whichsocat,'both');
 synthfile=[workrootdir,'SOCATv2019.tsv'];
 zipsynthfile=[synthfile,'.zip'];
 
@@ -24,13 +27,16 @@ else % read file
     SOCATv2019=readSOCATenhancedfile(synthfile);
     save([workrootdir,'SOCATv2019.mat'], 'SOCATv2019');
 end
+end
 
-%% Read SOCATv2109 enhanced files (A-E, WOCE 2-4)
+% Read SOCATv2109 enhanced files (A-E, WOCE 2-4)
+if strcmp(whichsocat,'all') | strcmp(whichsocat,'both');
 if exist([workrootdir,'SOCATV2019all.mat'],'file')
     load([workrootdir,'SOCATV2019all.mat']);
 else % read files
     allcruisefiles=dir([workrootdir,'SOCATv2019v7All_ABCDE_enhanced_datafiles/**/*.tsv']);
     for acf=1:length(allcruisefiles);
+        disp(acf);
         cruisefile=[allcruisefiles(acf).folder,'/',allcruisefiles(acf).name];
         cruisedata=readSOCATenhancedfile(cruisefile);
         if acf==1; SOCATv2019all=cruisedata;
@@ -40,37 +46,28 @@ else % read files
     end
     save([workrootdir,'SOCATv2019all.mat'], 'SOCATv2019all', '-v7.3');
 end
-
-
+end
 %%
-
-
 % From categorical to cellstr
 % If done when creating SOCATv2019.mat, the variables is >2GB
 SOCATv2019.Expocode=cellstr(SOCATv2019.Expocode);
-SOCATv2019.ICEScode=cellstr(SOCATv2019.ICEScode);
-SOCATv2019.PlatformName=cellstr(SOCATv2019.PlatformName);
-
-% Remap some of the ICES codes; some ships have 2 when it should be 1
-SOCATv2019.ICEScode(contains(SOCATv2019.ICEScode,'06MT'))={'06M3'};
-SOCATv2019.ICEScode(contains(SOCATv2019.ICEScode,'06P1'))={'06PO'};
-SOCATv2019.ICEScode(contains(SOCATv2019.ICEScode,'35MV'))={'35MF'};
 
 % In SOCAT tsv NaN are NaN
 unique_expocodes=unique(SOCATv2019.Expocode);
 
+% Read the info sheet
+SOCATv2019_info=tdfread('CMEMS_SOCATv2019.tsv');
+
+%% Create NetCDF
+
 cmode = netcdf.getConstant('NETCDF4');
 cmode = bitor(cmode,netcdf.getConstant('CLASSIC_MODEL'));
-%%
+
 for ec=1:length(unique_expocodes)
     
     currentexpocode=unique_expocodes{ec};
     currenticescode=currentexpocode(1:4);
     
-    if strcmp(currenticescode,'06MT'); currenticescode='06M3';
-    elseif  strcmp(currenticescode,'06P1'); currenticescode='06PO';
-    elseif  strcmp(currenticescode,'35MV'); currenticescode='35MF';
-    end
     
     %Which platform it is & set corresponding attributes
     % Research Vessel
