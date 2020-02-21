@@ -90,9 +90,14 @@ for ec=1:length(unique_platform_code)
     platform_code=platform_code(isstrprop(platform_code, 'alphanum')); % remove not-allowed characters
     platform_name=char(unique(SOCATv2019_info.Name(filterec)));
     wmo_platform_code=char(unique(SOCATv2019_info.CallSign_WMO(filterec)));
-    ices_platform_code=char(unique(SOCATv2019_info.ICEScode(filterec))); 
+    ices_platform_code=char(unique(SOCATv2019_info.ICEScode(filterec)));
     institution=strjoin(transpose(unique(SOCATv2019_info.Institution(filterec))),'/');
     institution_edmo_code=regexprep(char(join(transpose(unique(SOCATv2019_info.EDMO(filterec))))),' +',' ');
+        if strcmp(institution_edmo_code, " NaN"); institution_edmo_code=''; end
+    pi_institution=strjoin(transpose(unique(SOCATv2019_info.PI_Institution(filterec))),'/');
+    pi_institution_edmo_code=regexprep(char(join(transpose(unique(SOCATv2019_info.PI_EDMO(filterec))))),' +',' ');
+    pis=strjoin(transpose(unique(SOCATv2019_info.PI(filterec))),'/');
+    
     source_platform_category_code=char(unique(SOCATv2019_info.PlatformType(filterec)));
     switch source_platform_category_code
         case '31'
@@ -116,6 +121,8 @@ for ec=1:length(unique_platform_code)
             cdm_data_type='trajectory';
             outputfile = ['DRIFTER/GL_TS_DB_',platform_code,'_SOCATv2019.nc'];
     end
+    splitoutfile=split(outputfile,'/');
+    identifier=splitoutfile{2}(1:end-3);
     
     % Extract info from SOCAT
     latin = SOCATv2019.latitudedecdegN(filterdata);
@@ -311,12 +318,19 @@ for ec=1:length(unique_platform_code)
     netcdf.putAtt(ncid, globid, 'title', 'Global Ocean - In Situ reprocessed carbon observations - SOCATv2019');
     % netcdf.putAtt(ncid, globid, 'summary', '');
     netcdf.putAtt(ncid, globid, 'naming_authority', 'Copernicus Marine in situ');
-    netcdf.putAtt(ncid, globid, 'id', outputfile(1:end-3));
-    % netcdf.putAtt(ncid, globid, 'wmo_platform_code', '');
+    netcdf.putAtt(ncid, globid, 'id', identifier);
+    if (strcmp(source_platform_category_code,'41') | strcmp(source_platform_category_code,'42')) & ~isempty(wmo_platform_code)
+        netcdf.putAtt(ncid, globid, 'wmo_platform_code', wmo_platform_code);
+    elseif (strcmp(source_platform_category_code,'31') | strcmp(source_platform_category_code,'32')) & ~isempty(ices_platform_code)
+        netcdf.putAtt(ncid, globid, 'ices_platform_code', ices_platform_code);
+    end
     netcdf.putAtt(ncid, globid, 'source', source);
     netcdf.putAtt(ncid, globid, 'source_platform_category_code', source_platform_category_code);
     netcdf.putAtt(ncid, globid, 'institution_edmo_code', institution_edmo_code);
     netcdf.putAtt(ncid, globid, 'institution', institution);
+    netcdf.putAtt(ncid, globid, 'PI_institution_edmo_code', pi_institution_edmo_code);
+    netcdf.putAtt(ncid, globid, 'PI_institution', pi_institution);
+    netcdf.putAtt(ncid, globid, 'PIs', pis);
     
     netcdf.putAtt(ncid, globid, 'geospatial_lat_min', num2str(min(latin)));
     netcdf.putAtt(ncid, globid, 'geospatial_lat_max', num2str(max(latin)));
@@ -327,7 +341,6 @@ for ec=1:length(unique_platform_code)
     netcdf.putAtt(ncid, globid, 'time_coverage_start', datestr(min(timeinsocat),'yyyy-mm-ddTHH:MM:SSZ'));
     netcdf.putAtt(ncid, globid, 'time_coverage_end', datestr(max(timeinsocat),'yyyy-mm-ddTHH:MM:SSZ'));
     netcdf.putAtt(ncid, globid, 'cdm_data_type', cdm_data_type);
-    %netcdf.putAtt(ncid, globid, 'summary', '');
     
     netcdf.putAtt(ncid, globid, 'format_version', '1.4');
     netcdf.putAtt(ncid, globid, 'Conventions', 'CF-1.6 Copernicus-InSituTAC-Manual-1.0 Copernicus-InSituTAC-SRD-1.4 Copernicus-InSituTAC-ParametersList-3.1.0');
@@ -337,7 +350,13 @@ for ec=1:length(unique_platform_code)
     netcdf.putAtt(ncid, globid, 'data_assembly_center', 'BERGEN');
     netcdf.putAtt(ncid, globid, 'update_interval', 'yearly');
     netcdf.putAtt(ncid, globid, 'citation', ['These data were collected and made freely available by the Copernicus project and the programs that contribute to it. ',...
-        'Cite as Bakker et al. (2016), Bakker et al. (2019); see dois']);
+        'The Surface Ocean CO2 Atlas (SOCAT) is an international effort, endorsed by the ',...
+        'International Ocean Carbon Coordination Project (IOCCP), the Surface Ocean ',...
+        'Lower Atmosphere Study (SOLAS) and the Integrated Marine Biosphere Research ',...
+        '(IMBeR) program, to deliver a uniformly quality-controlled surface ocean CO2 ',...
+        'database. The many researchers and funding agencies responsible for the collection ',...
+        'of data and quality control are thanked for their contributions to SOCAT. ',...
+        'Cite as Bakker et al. (2016), Bakker et al. (2019).']);
     netcdf.putAtt(ncid, globid, 'doi', '0.5194/essd-8-383-2016 10.25921/cpbz-qa92');
     netcdf.putAtt(ncid, globid, 'date_update', datestr(now, 'yyyy-mm-ddTHH:MM:SSZ'));
     netcdf.putAtt(ncid, globid, 'history', [datestr(now, 'yyyy-mm-ddTHH:MM:SSZ'),' : Creation']);
@@ -347,9 +366,7 @@ for ec=1:length(unique_platform_code)
     netcdf.putAtt(ncid, globid, 'distribution_statement','These data follow Copernicus standards; they are public and free of charge. User assumes all risk for use of data. User must display citation in any publication or product using data. User must contact PI prior to any commercial use of data.');
     
     % Close nc file
-    netcdf.close(ncid);
-    %end
-    
+    netcdf.close(ncid);    
     
     clearvars '-except' workrootdir outdir SOCATv2019 SOCATv2019_info ...
         cmode allplatformcodes unique_platform_code ec
@@ -358,9 +375,9 @@ end
 
 toc
 
-system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'VESSEL/*.nc; do ./control.csh $f >> ',outdir,'VESSEL/formatcheckoutSOCAT; done'])
-system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'MOORING/*.nc; do ./control.csh $f >> ',outdir,'MOORING/formatcheckoutSOCAT; done'])
-system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'DRIFTER/*.nc; do ./control.csh $f >> ',outdir,'DRIFTER/formatcheckoutSOCAT; done'])
+system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'VESSEL/*.nc; do ./control.csh $f >> ',outdir,'VESSEL_formatcheckoutSOCAT; done'])
+system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'MOORING/*.nc; do ./control.csh $f >> ',outdir,'MOORING_formatcheckoutSOCAT; done'])
+system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'DRIFTER/*.nc; do ./control.csh $f >> ',outdir,'DRIFTER_formatcheckoutSOCAT; done'])
 
 %% ======================================================================
 %%==================== FUNCTIONS =========================================
