@@ -1,14 +1,14 @@
 % GLODAP gridded file. According to Corentin, keep it as-is, with added
 % Copernicus-specific global attributes
 clc; clear all; close all
-workrootdir=...
-    '/Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/';
-indir=[workrootdir,'04_2018/GLODAPv2/original/GLODAPv2.2016b_MappedClimatologies/'];
+%workrootdir=...
+%    '/Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/';
+indir=['/Users/rpr061/Documents/localtestarea/CARBON-REP-112020/original_files/'];
 %outdir=[workrootdir,'2018/GLODAPv2/workspace/'];
-outdir=['/Users/rpr061/Documents/localtestarea/CMEMS/'...
-    'GLODAP_REP_GRIDDED_FIELDS/CLIMATOLOGY/'];
-filestoadd={'temperature','salinity','oxygen','NO3','PO4','silicate',...
-    'pHtsinsitutp','pHts25p0','TCO2','Talk'};
+outdir=['/Users/rpr061/Documents/localtestarea/CARBON-REP-112020/GLODAP_REP_GRIDDED_FIELDS/'];
+%filestoadd={'temperature','salinity','oxygen','NO3','PO4','silicate',...
+%    'pHtsinsitutp','pHts25p0','TCO2','Talk'};
+filestoadd={'salinity'};
 
 
 % Load existing netcdfs
@@ -102,5 +102,5 @@ for v=1:length(filestoadd)
 end
 %%
 
-system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'*.nc; do ./control.csh $f >> ',outdir,'formatcheckoutGLODAPgrid; done'])
+%system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'*.nc; do ./control.csh $f >> ',outdir,'formatcheckoutGLODAPgrid; done'])
 

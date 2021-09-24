@@ -60,7 +60,7 @@ end
 
 
 %%
-load([workrootdir,socatversion,'_synthAE.mat']);
+load([workrootdir,'auxiliary_files/',socatversion,'_synthAE.mat']);
 %SOCAT=SOCATall;
 % From categorical to cellstr. If done when creating SOCAT.mat, the variables is >2GB
 SOCAT.Expocode=cellstr(SOCAT.Expocode);
@@ -69,20 +69,36 @@ SOCAT.Expocode=cellstr(SOCAT.Expocode);
 SOCAT.longitudedecdegE(SOCAT.longitudedecdegE>180)=...
     SOCAT.longitudedecdegE(SOCAT.longitudedecdegE>180)-360;
 unique_expocodes=unique(SOCAT.Expocode);
+%%
 % Read the info sheet
 %SOCAT_info=tdfread([workrootdir,'CMEMS_SOCAT.tsv']);
-SOCAT_info=tdfread(['/Users/rpr061/Downloads/SOCATv2020CMEMS.tsv']);
+%SOCAT_info=tdfread(['/Users/rpr061/Downloads/SOCATv2020CMEMS.tsv']); %
+%TDFread does not do well with UTF8
+file=fopen(['/Users/rpr061/Downloads/SOCATv2020CMEMS.tsv'],'r','n','UTF-8');
+header=fgets(file);
+header=strsplit(header,'\t');
+header{end}=header{end}(1:end-2);
+data=textscan(file, [repmat('%s',1,11),'%s\r'], 'Delimiter','\t');
+fclose(file)
+% Create structure
+for ff=1:length(header);
+    SOCAT_info.(header{ff})=data{ff}; end
+
 % Convert all char to cellstr
-fn=fieldnames(SOCAT_info);
-for f=1:length(fn)
-    if ischar(SOCAT_info.(fn{f})); SOCAT_info.(fn{f})=cellstr(SOCAT_info.(fn{f}));
-    elseif isnumeric(SOCAT_info.(fn{f})); SOCAT_info.(fn{f})=cellstr(num2str(SOCAT_info.(fn{f})));
-    end
-end
+% fn=fieldnames(SOCAT_info);
+% for f=1:length(fn)
+%     if ischar(SOCAT_info.(fn{f})); SOCAT_info.(fn{f})=cellstr(SOCAT_info.(fn{f}));
+%     elseif isnumeric(SOCAT_info.(fn{f})); SOCAT_info.(fn{f})=cellstr(num2str(SOCAT_info.(fn{f})));
+%     end
+% end
 nocallsign=cellfun(@isempty,SOCAT_info.CallSign_WMO);
 allplatformcodes=SOCAT_info.CallSign_WMO;
 allplatformcodes(nocallsign)=SOCAT_info.Name(nocallsign);
 unique_platform_code=unique(allplatformcodes);
+
+
+
+
 
 %% Create NetCDF
 cmode = netcdf.getConstant('NETCDF4');
@@ -90,8 +106,8 @@ cmode = bitor(cmode,netcdf.getConstant('CLASSIC_MODEL'));
 
 tic
 
-for ec=10:20%length(unique_platform_code)
-    
+for ec=1:length(unique_platform_code)
+  
     currentpc=unique_platform_code{ec};
     filterec=ismember(allplatformcodes,{currentpc});
     filterdata=ismember(SOCAT.Expocode,SOCAT_info.Expocode(filterec));
@@ -101,15 +117,37 @@ for ec=10:20%length(unique_platform_code)
     platform_code=platform_code(isstrprop(platform_code, 'alphanum')); % remove not-allowed characters
     platform_name=char(unique(SOCAT_info.Name(filterec)));
     wmo_platform_code=char(unique(SOCAT_info.CallSign_WMO(filterec)));
+    if isempty(wmo_platform_code); wmo_platform_code=' '; end
     ices_platform_code=char(unique(SOCAT_info.ICEScode(filterec)));
+    if isempty(ices_platform_code); ices_platform_code=' '; end
+
+    % List of institutions
     institution=strjoin(transpose(unique(SOCAT_info.Institution(filterec))),'/');
     institution_edmo_code=regexprep(char(join(transpose(unique(SOCAT_info.EDMO(filterec))))),' +',' ');
-        if strcmp(institution_edmo_code, " NaN"); institution_edmo_code=''; end
+        if strcmp(institution_edmo_code, " NaN"); institution_edmo_code=' '; end
     pi_institution=strjoin(transpose(unique(SOCAT_info.PI_Institution(filterec))),'/');
-    pi_institution_edmo_code=regexprep(char(join(transpose(unique(SOCAT_info.PI_EDMO(filterec))))),' +',' ');
-    pis=strjoin(transpose(unique(SOCAT_info.PI(filterec))),';');
+    %pi_institution_edmo_code=regexprep(char(join(transpose(unique(SOCAT_info.PI_EDMO(filterec))))),' +',' ');
+     pi_institution_edmo_code=regexprep(char(join(transpose(unique(SOCAT_info.PI_EDMO(filterec))))),' +',' ');
+   %allinstitution=[institution,';',pi_institution];
+   if ~strcmp(institution_edmo_code,pi_institution_edmo_code)
+           allinstitution=[institution,' ',pi_institution];
+    allinstitution_edmo_code=[institution_edmo_code,' ',pi_institution_edmo_code];
+   else allinstitution_edmo_code=[institution_edmo_code];
+           allinstitution=[institution];
+   end
+   if strcmp(allinstitution_edmo_code(1),' '); allinstitution_edmo_code=allinstitution_edmo_code(2:end); end 
+   
+   
+    % List of PIs
+    allpis=unique(SOCAT_info.PI(filterec));
+    for aa=1:length(allpis)
+    indpi{aa}=strsplit(allpis{aa},';'); end
+    pis=strjoin(unique([indpi{:}]),';'); 
+    %pis=strjoin(transpose(unique(SOCAT_info.PI(filterec))),';');
     
     source_platform_category_code=char(unique(SOCAT_info.PlatformType(filterec)));
+    if ~strcmp(source_platform_category_code,'3B'); continue; end
+
     switch source_platform_category_code
         case '31'
             source='research vessel';
@@ -125,6 +163,18 @@ for ec=10:20%length(unique_platform_code)
             outputfile = ['VESSEL/GL_TS_TS_',platform_code,'-SOCATv2020.nc'];
                         sensormount='mounted_on_shipborne_fixed';
 
+
+        case '3B'
+            source='autonomous surface water vehicle';
+            data_type='OceanSITES trajectory data';
+            cdm_data_type='trajectory';
+            if contains(platform_name, 'SailDrone');
+            outputfile = ['AUV/GL_TS_SD_',platform_code,'-SOCATv2020.nc'];
+            elseif contains(platform_name, 'WaveGlider')
+            outputfile = ['AUV/GL_TS_GL_',platform_code,'-SOCATv2020.nc'];
+            end
+                        sensormount='mounted_on_glider';                        
+                        
         case '41'
             source='moored surface buoy';
             data_type='OceanSITES time-series data';
@@ -388,17 +438,21 @@ for ec=10:20%length(unique_platform_code)
     netcdf.putAtt(ncid, globid, 'summary', '');
     netcdf.putAtt(ncid, globid, 'naming_authority', 'Copernicus Marine In Situ');
     netcdf.putAtt(ncid, globid, 'id', identifier);
-    if (strcmp(source_platform_category_code,'41') | strcmp(source_platform_category_code,'42')) & ~isempty(wmo_platform_code)
-        netcdf.putAtt(ncid, globid, 'wmo_platform_code', wmo_platform_code);
-        netcdf.putAtt(ncid, globid, 'ices_platform_code', '');
-    elseif (strcmp(source_platform_category_code,'31') | strcmp(source_platform_category_code,'32')) & ~isempty(ices_platform_code)
-        netcdf.putAtt(ncid, globid, 'ices_platform_code', ices_platform_code);
-        netcdf.putAtt(ncid, globid, 'wmo_platform_code', '');
-    end
+    
+    netcdf.putAtt(ncid, globid, 'wmo_platform_code', wmo_platform_code);
+    netcdf.putAtt(ncid, globid, 'ices_platform_code', ices_platform_code);
+    
+    %     if (strcmp(source_platform_category_code,'41') | strcmp(source_platform_category_code,'42')) & ~isempty(wmo_platform_code)
+%         netcdf.putAtt(ncid, globid, 'wmo_platform_code', wmo_platform_code);
+%         netcdf.putAtt(ncid, globid, 'ices_platform_code', ' ');
+%     elseif (strcmp(source_platform_category_code,'31') | strcmp(source_platform_category_code,'32')) & ~isempty(ices_platform_code)
+%         netcdf.putAtt(ncid, globid, 'ices_platform_code', ices_platform_code);
+%         netcdf.putAtt(ncid, globid, 'wmo_platform_code', ' ');
+%     end
     netcdf.putAtt(ncid, globid, 'source', source);
     netcdf.putAtt(ncid, globid, 'source_platform_category_code', source_platform_category_code);
-    netcdf.putAtt(ncid, globid, 'institution_edmo_code', institution_edmo_code);
-    netcdf.putAtt(ncid, globid, 'institution', institution);
+    netcdf.putAtt(ncid, globid, 'institution_edmo_code', allinstitution_edmo_code);
+    netcdf.putAtt(ncid, globid, 'institution', allinstitution);
     netcdf.putAtt(ncid, globid, 'institution_references', ' ');
     netcdf.putAtt(ncid, globid, 'site_code', ''); %OceanSites code; e.g. STATION-M
     netcdf.putAtt(ncid, globid, 'comment', ''); 
@@ -462,10 +516,11 @@ for ec=10:20%length(unique_platform_code)
 end
 
 toc
-
-system(['cd /Users/rpr061/Dropbox/BCDC_projects/CMEMS_INSTAC/Releases/current_FormatChecker; for f in ', outdir,'VESSEL/*.nc; do ./control.csh $f >> ',outdir,'VESSEL_formatcheckoutSOCAT; done'])
-system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/Releases/current_FormatChecker/; for f in ', outdir,'MOORING/*.nc; do ./control.csh $f >> ',outdir,'MOORING_formatcheckoutSOCAT; done'])
-system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/Releases/current_FormatChecker/; for f in ', outdir,'DRIFTER/*.nc; do ./control.csh $f >> ',outdir,'DRIFTER_formatcheckoutSOCAT; done'])
+%%
+%system(['cd /Users/rpr061/Dropbox/BCDC_projects/CMEMS_INSTAC/Releases/current_FormatChecker; for f in ', outdir,'VESSEL/*.nc; do ./control.csh $f >> ',outdir,'VESSEL_formatcheckoutSOCAT; done'])
+%system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/Releases/current_FormatChecker/; for f in ', outdir,'MOORING/*.nc; do ./control.csh $f >> ',outdir,'MOORING_formatcheckoutSOCAT; done'])
+%system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/Releases/current_FormatChecker/; for f in ', outdir,'DRIFTER/*.nc; do ./control.csh $f >> ',outdir,'DRIFTER_formatcheckoutSOCAT; done'])
+system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/Releases/current_FormatChecker/; for f in ', outdir,'AUV/*.nc; do ./control.csh $f >> ',outdir,'AUV_formatcheckoutSOCAT; done'])
 
 %% ======================================================================
 %%==================== FUNCTIONS =========================================

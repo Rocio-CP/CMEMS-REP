@@ -20,7 +20,7 @@ GLODAPv22020.G2hour(isnan(GLODAPv22020.G2hour))=0;
 GLODAPv22020.G2minute(isnan(GLODAPv22020.G2minute))=0;
 
 % Read the cruise/platform info sheet
-GLODAPv22020_info=tdfread([workrootdir,'CMEMS_GLODAPv22020.tsv']);
+GLODAPv22020_info=tdfread(['/Users/rpr061/Downloads/GLODAPv2020_CMEMS.tsv']);
 % Convert all char and numeric (except the CruiseCounter) fields to cellstr
 fn=fieldnames(GLODAPv22020_info);
 for f=1:length(fn)
@@ -102,8 +102,17 @@ cdm_data_type='profile';
 %%
 tic
 
+
+%% Only the wrong files
+wrongplatst=tdfread([outdir,'errorfiles'])
+wrongplats=wrongplatst.col1;
+wrongplats=cellstr(wrongplats)
+for ww=1:length(wrongplats); iwrong(ww)=find(ismember(unique_platform_code,wrongplats(ww))); end
+
+
 % Either fix the issue of missing cruises or add the multiple ship cruises
-for platnum=1%06:length(unique_platform_code)
+for platnum=[59,86,89,121];
+%for platnum=1:length(unique_platform_code)
     
     currentpc=unique_platform_code{platnum};
     % All expocodes with same platform
@@ -118,14 +127,42 @@ for platnum=1%06:length(unique_platform_code)
     platform_name=char(unique(GLODAPv22020_info.Name(filterec)));
     wmo_platform_code=char(unique(GLODAPv22020_info.CallSign_WMO(filterec)));
     ices_platform_code=char(unique(GLODAPv22020_info.ICEScode(filterec)));
+        if isempty(wmo_platform_code); wmo_platform_code=' '; end
+    if isempty(ices_platform_code); ices_platform_code=' '; end
+
         % Institution attributes
+        
+            % List of institutions
     institution=strjoin(transpose(unique(GLODAPv22020_info.Institution(filterec))),'/');
     institution_edmo_code=regexprep(char(join(transpose(unique(GLODAPv22020_info.EDMO(filterec))))),' +',' ');
-    if strcmp(institution_edmo_code, " NaN"); institution_edmo_code=''; end
+        if contains(institution_edmo_code, 'NaN'); institution_edmo_code=''; end
     pi_institution=strjoin(transpose(unique(GLODAPv22020_info.PI_Institution(filterec))),'/');
-    pi_institution_edmo_code=regexprep(char(join(transpose(unique(GLODAPv22020_info.PI_EDMO(filterec))))),' +',' ');
-    pis=strjoin(transpose(unique(GLODAPv22020_info.CarbonPI(filterec))),'/');
-    
+    %pi_institution_edmo_code=regexprep(char(join(transpose(unique(GLODAPv22020_info.PI_EDMO(filterec))))),' +',' ');
+     pi_institution_edmo_code=regexprep(char(join(transpose(unique(GLODAPv22020_info.PI_EDMO(filterec))))),' +',' ');
+           if contains(pi_institution_edmo_code, 'NaN'); pi_institution_edmo_code=''; end
+
+     %allinstitution=[institution,';',pi_institution];
+   if ~strcmp(institution_edmo_code,pi_institution_edmo_code)
+           allinstitution=[institution,pi_institution];
+    allinstitution_edmo_code=[institution_edmo_code,pi_institution_edmo_code];
+   else allinstitution_edmo_code=[institution_edmo_code];
+           allinstitution=[institution];
+   end
+      if strcmp(allinstitution_edmo_code(1),' '); allinstitution_edmo_code=allinstitution_edmo_code(2:end); end 
+
+   % List of PIs
+    allpis=unique(GLODAPv22020_info.PI(filterec));
+    for aa=1:length(allpis)
+    indpi{aa}=strsplit(allpis{aa},','); end
+    pis=strjoin(unique([indpi{:}]),';');         
+%         
+%     institution=strjoin(transpose(unique(GLODAPv22020_info.Institution(filterec))),'/');
+%     institution_edmo_code=regexprep(char(join(transpose(unique(GLODAPv22020_info.EDMO(filterec))))),' +',' ');
+%     if strcmp(institution_edmo_code, " NaN"); institution_edmo_code=''; end
+%     pi_institution=strjoin(transpose(unique(GLODAPv22020_info.PI_Institution(filterec))),'/');
+%     pi_institution_edmo_code=regexprep(char(join(transpose(unique(GLODAPv22020_info.PI_EDMO(filterec))))),' +',' ');
+%     pis=strjoin(transpose(unique(GLODAPv22020_info.CarbonPI(filterec))),'/');
+%     
     source_platform_category_code=char(unique(GLODAPv22020_info.PlatformType(filterec)));
     switch source_platform_category_code
         case '31'
@@ -207,6 +244,7 @@ for platnum=1%06:length(unique_platform_code)
     
     %% Generate NetCDF
     % Create NetCDF file
+    if exist([outdir,outputfile]); delete([outdir,outputfile]);end
     ncid = netcdf.create([outdir,outputfile], cmode);
     
     % Define dimensions and variables
@@ -373,14 +411,15 @@ for platnum=1%06:length(unique_platform_code)
     netcdf.putAtt(ncid, globid, 'summary', '');
     netcdf.putAtt(ncid, globid, 'naming_authority', 'Copernicus Marine In Situ');
     netcdf.putAtt(ncid, globid, 'id', identifier);
-if (strcmp(source_platform_category_code,'31') | strcmp(source_platform_category_code,'32')) & ~isempty(ices_platform_code)
+%if (strcmp(source_platform_category_code,'31') | strcmp(source_platform_category_code,'32')) & ~isempty(ices_platform_code)
         netcdf.putAtt(ncid, globid, 'wmo_platform_code', wmo_platform_code);
         netcdf.putAtt(ncid, globid, 'ices_platform_code', ices_platform_code);
-    end
+%end
+
     netcdf.putAtt(ncid, globid, 'source', source);
     netcdf.putAtt(ncid, globid, 'source_platform_category_code', source_platform_category_code);
-    netcdf.putAtt(ncid, globid, 'institution_edmo_code', institution_edmo_code);
-    netcdf.putAtt(ncid, globid, 'institution', institution);
+    netcdf.putAtt(ncid, globid, 'institution_edmo_code', allinstitution_edmo_code);
+    netcdf.putAtt(ncid, globid, 'institution', allinstitution);
     netcdf.putAtt(ncid, globid, 'institution_references', ' ');
     netcdf.putAtt(ncid, globid, 'site_code', ''); %OceanSites code; e.g. STATION-M
     netcdf.putAtt(ncid, globid, 'comment', ' '); 
@@ -437,7 +476,7 @@ toc
 %%
 % Pass the format checker through all the files
 system(['cd /Users/rpr061/Dropbox/BCDC_projects/CMEMS_INSTAC/Releases/current_FormatChecker; for f in ', outdir,'VESSEL/*.nc; do ./control.csh $f >> ',outdir,'VESSEL_formatcheckoutSOCAT; done'])
-%system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/REP_Products/current_FormatChecker/; for f in ', outdir,'ETC/*.nc; do ./control.csh $f >> ',outdir,'ETC/formatcheckoutSOCAT; done'])
+system(['cd /Users/rpr061/Dropbox/BCDC_projects/CMEMS_INSTAC/Releases/current_FormatChecker; for f in ', outdir,'ETC/*.nc; do ./control.csh $f >> ',outdir,'ETC_formatcheckoutSOCAT; done'])
 
 
 %% ============= FUNCTIONS ================================================

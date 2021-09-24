@@ -2,9 +2,15 @@
 % Copernicus-specific global attributes
 % Split by variable???
 clc; clear all; close all
+% to use system
+[~,result]=system('echo -n $PATH');
+result = [result ':/usr/local/bin'];
+setenv('PATH',result)
+clear result
+
 workrootdir=...
-    '/Users/rpr061/Documents/localtestarea/CARBON-REP-112020/';
-indir=[workrootdir,'original_files/'];
+    '/Users/rpr061/Documents/localtestarea/CARBON-REP-122021/';
+indir=[workrootdir]%,'original_files/'];
 %outdir=[workrootdir,'2018/SOCATv6/workspace/'];
 outdir=[workrootdir,'SOCAT_REP_GRIDDED_FIELDS/'];
 
@@ -14,8 +20,9 @@ gridfiles=dir([indir,'*gridded*.nc']);
 % Load existing netcdfs
 for f=1:length(gridfiles)
     
-    system(['cp ',indir,gridfiles(f).name,' ',outdir,gridfiles(f).name(1:end-3),'_CMEMS_OG.nc'  ]);
-    system(['chflags nouchg ',outdir,gridfiles(f).name(1:end-3),'_CMEMS_OG.nc']);
+    % copy to netcdf4-classic
+    system(['nccopy -k ''nc7'' ',indir,gridfiles(f).name,' ',outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc'  ]);
+    system(['chflags nouchg ',outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc']);
     
 %        cmode = netcdf.getConstant('NETCDF4');
 %cmode = bitor(cmode,netcdf.getConstant('CLASSIC_MODEL'));
@@ -26,19 +33,21 @@ for f=1:length(gridfiles)
 %        netcdf.close(ncid);
 
    
-    ncid=netcdf.open([outdir,gridfiles(f).name(1:end-3),'_CMEMS_OG.nc'], ...
+    ncid=netcdf.open([outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc'], ...
         'NC_WRITE');
     
     netcdf.reDef(ncid);
     globid=netcdf.getConstant('GLOBAL');
-
-
     
+    socathistory=netcdf.getAtt(ncid,globid,'history');
+    socattitle=netcdf.getAtt(ncid,globid,'title');
+    socatconventions=netcdf.getAtt(ncid,globid,'Conventions');
+
     netcdf.putAtt(ncid, globid, 'data_type', 'Copernicus Marine gridded data');
     netcdf.putAtt(ncid, globid, 'data_mode', 'D');
-    netcdf.putAtt(ncid, globid, 'title', 'Global Ocean - Gridded In Situ reprocessed carbon observations - SOCATv2020');
+    netcdf.putAtt(ncid, globid, 'title', 'Global Ocean - In Situ reprocessed carbon observations - SOCATv2021');
     netcdf.putAtt(ncid, globid, 'references', 'http://marine.copernicus.eu, http://www.socat.info/');
-    netcdf.putAtt(ncid, globid, 'naming_authority', 'Copernicus Marine in situ');
+    netcdf.putAtt(ncid, globid, 'naming_authority', 'Copernicus Marine');
     netcdf.putAtt(ncid, globid, 'id', [gridfiles(f).name(1:end-3),'_CMEMS']);
     netcdf.putAtt(ncid, globid, 'institution', 'Pacific Marine Environmental Laboratory (PMEL), National Oceanic and Atmospheric Administration (NOAA)');
     netcdf.putAtt(ncid, globid, 'institution_edmo_code', '1440');
@@ -60,9 +69,10 @@ for f=1:length(gridfiles)
     end
     netcdf.putAtt(ncid, globid, 'cdm_data_type', 'grid');
     
-    netcdf.putAtt(ncid, globid, 'format_version', '1.4');
-    netcdf.putAtt(ncid, globid, 'Conventions', 'CF-1.6 Copernicus-InSituTAC-FormatManual-1.4 Copernicus-InSituTAC-SRD-1.41 Copernicus-InSituTAC-ParametersList-3.2.0');
+    netcdf.putAtt(ncid, globid, 'format_version', '1.0');
+    %netcdf.putAtt(ncid, globid, 'Conventions', 'CF-1.6 Copernicus-InSituTAC-FormatManual-1.42 Copernicus-InSituTAC-SRD-1.5 Copernicus-InSituTAC-ParametersList-3.2.0');
     netcdf.putAtt(ncid, globid, 'netcdf_version', 'netCDF-4');
+    netcdf.putAtt(ncid, globid, 'qc_manual', '');
     
     netcdf.putAtt(ncid, globid, 'references', 'http://marine.copernicus.eu https://www.socat.info');
     netcdf.putAtt(ncid, globid, 'data_assembly_center', 'BERGEN');
@@ -74,33 +84,49 @@ for f=1:length(gridfiles)
         '(IMBeR) program, to deliver a uniformly quality-controlled surface ocean CO2 ',...
         'database. The many researchers and funding agencies responsible for the collection ',...
         'of data and quality control are thanked for their contributions to SOCAT. ',...
-        'Cite as Bakker et al. (2016), Bakker et al. (2020).']);
+        'Cite as Bakker et al. (2016), Bakker et al. (2021).']);
     netcdf.putAtt(ncid, globid, 'distribution_statement',['These data follow Copernicus standards; they are public ',...
         'and free of charge. User assumes all risk for use of data. User must display citation in any publication or ',...
         'product using data. User must contact PI prior to any commercial use of data.']);
     
-    netcdf.putAtt(ncid, globid, 'doi', 'https://doi.org/10.5194/essd-8-383-2016 https://doi.org/10.25921/4xkx-ss49');
+    netcdf.putAtt(ncid, globid, 'doi', 'https://doi.org/10.5194/essd-8-383-2016 https://doi.org/10.25921/yg69-jd96');
 
-    netcdf.putAtt(ncid, globid, 'date_update', datestr(today, 'yyyy-mm-ddTHH:MM:SSZ'));
+    netcdf.putAtt(ncid, globid, 'date_update', datestr(now, 'yyyy-mm-ddTHH:MM:SSZ'));
     netcdf.putAtt(ncid, globid, 'history', [datestr(now, 'yyyy-mm-ddTHH:MM:SSZ'),' : Creation']);
     
     netcdf.putAtt(ncid, globid, 'contact', 'post@bcdc.uib.no');
     netcdf.putAtt(ncid, globid, 'author', 'SOCAT and Copernicus data provider');
     netcdf.putAtt(ncid, globid, 'data_assembly_center', 'BERGEN');
     netcdf.putAtt(ncid, globid, 'update_interval', 'yearly');
-    netcdf.putAtt(ncid, globid, 'SOCAT_history', 'PyFerret V7.52 (optimized)  5-Jun-20');
-    netcdf.putAtt(ncid, globid, 'SOCAT_Notes', 'SOCAT gridded v2020 05-June-2020');
+    
+    netcdf.putAtt(ncid, globid, 'SOCAT_History', socathistory);
+    netcdf.putAtt(ncid, globid, 'SOCAT_Title', socattitle);
+    netcdf.putAtt(ncid, globid, 'SOCAT_Conventions', socatconventions);
+
+    %netcdf.putAtt(ncid, globid, 'SOCAT_Notes', 'SOCAT gridded v2021 05-June-2021');
     netcdf.putAtt(ncid, globid, 'summary', 'Surface Ocean Carbon Atlas (SOCAT) Gridded (binned) SOCAT observations, with a spatial grid of 1x1 degree and yearly in time. The gridded fields are computed from the monthly 1-degree gridded data, which uses only SOCAT datasets with QC flags of A through D and SOCAT data points flagged with WOCE flag values of 2. This yearly data is computed using data from the start to the end of each year as described in the summary attribute of each variable.');
     netcdf.putAtt(ncid, globid, 'caution', 'NO INTERPOLATION WAS PERFORMED. SIGNIFICANT BIASES ARE PRESENT IN THESE GRIDDED RESULTS DUE TO THE ARBITRARY AND SPARSE LOCATIONS OF DATA VALUES IN BOTH SPACE AND TIME.');
     netcdf.putAtt(ncid, globid, 'distribution_statement','These data follow Copernicus standards; they are public and free of charge. User assumes all risk for use of data. User must display citation in any publication or product using data. User must contact PI prior to any commercial use of data.');
     
     netcdf.close(ncid);
     
-    S=ncinfo([outdir,gridfiles(f).name(1:end-3),'_CMEMS_OG.nc']);
-    file_fmt=S.Format
-    S.Format='netcdf4';
-    ncwriteschema([outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc'],S);
-    
+%    S=ncinfo([outdir,gridfiles(f).name(1:end-3),'_CMEMS_OG.nc']);
+%    file_fmt=S.Format
+%    S.Format='netcdf4';
+%    ncwriteschema([outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc'],S);
+  
+% CHange salinity units to conform CF
+if contains(gridfiles(f).name,'qrtrdeg');prefix='coast_';suffix='';
+elseif contains(gridfiles(f).name,'monthly');prefix='';suffix='';
+elseif contains(gridfiles(f).name,'yearly');prefix='';suffix='_year';
+elseif contains(gridfiles(f).name,'decadal');prefix='';suffix='_decade';
+end
+
+   system(['ncatted -h -O -a units,',prefix,'salinity_ave_weighted',suffix,',o,c,1 ',[outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc']]);
+   system(['ncatted -h -O -a units,',prefix,'salinity_ave_unwtd',suffix,',o,c,1 ',[outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc']]);
+   system(['ncatted -h -O -a units,',prefix,'salinity_max_unwtd',suffix,',o,c,1 ',[outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc']]);
+   system(['ncatted -h -O -a units,',prefix,'salinity_min_unwtd',suffix,',o,c,1 ',[outdir,gridfiles(f).name(1:end-3),'_CMEMS.nc']]);
+
 end
 
 %system(['cd /Users/rpr061/Dropbox/BCDC_Projects/CMEMS_INSTAC/Releases/current_FormatChecker/; for f in ', outdir,'*.nc; do ./control.csh $f >> ',outdir,'formatcheckoutSOCATgrid; done'])
