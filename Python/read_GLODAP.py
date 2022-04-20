@@ -52,7 +52,14 @@ allcasts=tempdf['UNICAST']
 
 alldepths_onemeter=alldepths.round()
 
+nominal_depths=tuple(itertools.chain(range(0,105,5),range(100,1025,25),range(1000,10100,100)))
 
+### Extract from each platform
+MeteorCruises=expocodes.loc[expocodes['EXPOCODE'].str.contains('06AQ')]
+MeteorData=tempdf.loc[tempdf['G2cruise'].isin(MeteorCruises['G2cruise'])]
+
+
+### The matlab way of creating the depth dimension was oh boy SO WRONGG
 
 
 
