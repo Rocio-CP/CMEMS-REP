@@ -99,6 +99,9 @@ tempdf['G2depthnominal'] = depths_as_nominal
 tempdf.loc[np.isnan(tempdf['G2hour']), 'G2hour'] = 0
 tempdf.loc[np.isnan(tempdf['G2minute']), 'G2minute'] = 0
 
+# Rename G2fco2 to G2fco2_20_0 (in GLODAP, it's given at 20 dg, 0dbar).
+tempdf.rename(columns={'G2fco2': 'G2fco2_20_0'}, inplace=True)
+
 ### QC flags
 # If temperature and bottom depth exist, they're assumed good (flag 1)
 # If value not recorded/measured, then flag 0
@@ -121,6 +124,18 @@ for fv in variables_dict['flag']:
             print(fvv, G2OS_flag_dict[fvv])
             tempdf.loc[tempdf[fv] == fvv, [fv]] = G2OS_flag_dict[fvv]
 
+### Assign Expocodes and DOIs
+# Transform expocode dataframes into dictionaries (easier to lookup)
+expocodesdict = expocodes.set_index('G2cruise')['EXPOCODE'].to_dict()
+doisdict = dois.set_index('G2cruise')['DOI'].to_dict()
+
+for cruise in tempdf['G2cruise'].unique():
+    tempdf.loc[tempdf.G2cruise == cruise,
+                   'EXPOCODE'] = expocodesdict[cruise]
+    tempdf.loc[tempdf.G2cruise == cruise,
+                   'DOI'] = doisdict[cruise].rsplit('.org/', 1)[1]
+
+
 ### Extract from each platform
 # create the platform codes unique list, merging Callsign and Name (if callsign missing)
 GLODAP_info['PlatformCode']=GLODAP_info['CallSign_WMO']
@@ -132,144 +147,121 @@ unique_platform_codes=GLODAP_info['PlatformCode'].unique()
 
 
 # loop through the platforms (the basis of INSTAC files)
+
+filter_variables=['G2year','G2month','G2day','G2hour','G2minute',
+                   'G2latitude','G2longitude', 'G2depthnominal',
+                   *input_vars]
+
 for pc in unique_platform_codes:
-    cruises=expocodes.loc[expocodes['EXPOCODE'].str.contains('06AQ')]
+    # Create boolean filters for
+    filter_expocodes=GLODAP_info['PlatformCode']==pc
+    current_expocodes=GLODAP_info.loc[filter_expocodes,'EXPOCODE']
+    print(pc, current_expocodes)
+    filter_expocodes_data=tempdf['EXPOCODE'].isin(current_expocodes)
 
+    # Platform-specific global attributes
+    # Platform attributes
+    platform_code= pc # only alphanumeric characters
+    platform_name= GLODAP_info.loc[filter_expocodes, 'Name'].unique().item()
+    wmo=GLODAP_info.loc[filter_expocodes, 'CallSign_WMO'].unique().item()
+    ices=GLODAP_info.loc[filter_expocodes, 'ICEScode'].unique().item()
+    if not wmo : wmo= ' '
+    if not ices : ices= ' '
+    platform_category = str(GLODAP_info.loc[filter_expocodes, 'PlatformType'].unique().item())
+    if platform_category == '31' :
+        source = 'research vessel'
+        output_file_full_name='VESSEL/GL_PR_BO_'+platform_code+'-GLODAPv22022.nc'
+    elif platform_category == '21' :
+        source = 'propelled manned submersible'
+        output_file_full_name='ETC/GL_PR_BO_'+platform_code+'-GLODAPv22022.nc'
+    elif platform_category == '62' :
+        source = 'aeroplane'
+        output_file_full_name='ETC/GL_PR_BO_'+platform_code+'-GLODAPv22022.nc'
 
-MeteorCruises = expocodes.loc[expocodes['EXPOCODE'].str.contains('06AQ')]
-MeteorData = tempdf.loc[tempdf['G2cruise'].isin(MeteorCruises['G2cruise'])]
+    # Institution attributes
+    institution_name=GLODAP_info.loc[filter_expocodes, 'Institution'].unique()
+    edmo=GLODAP_info.loc[filter_expocodes, 'EDMO'].unique()
+    pi_institution_name=GLODAP_info.loc[filter_expocodes, 'PI_Institution'].unique()
+    pi_edmo=GLODAP_info.loc[filter_expocodes, 'PI_EDMO'].unique()
+    all_institution_name="/".join(np.unique([*institution_name, *pi_institution_name]))
+    all_edmo=",".join(np.unique([*edmo, *pi_edmo]))
+
+    # PI attributes
+    pi=GLODAP_info.loc[filter_expocodes, 'PI'].unique()
+    pi=";".join(pi)
+
+    # Extract sub-dataframe
+    current_dataframe = tempdf[filter_expocodes_data,filter_variables]
+
+    # Create date variable
+
+    # Order by increasing depth values
+
+    # Average at same depths and casts
+
+    break
+
 
 ### The matlab way of creating the depth dimension was oh boy SO WRONGG
 
 
 ############
-# Rename G2fco2 to G2fco2_20_0 (in GLODAP, it's given at 20 dg, 0dbar).
-tempdf.rename(columns={'G2fco2': 'G2fco2_20_0'}, inplace=True)
-
-# Subset for surface and reset indices
-# Upper 10 m, with fCO2 measurement (measured and calculated; # Flag 2 for Good,
-# MEASURED. Flag 0 is for calculated)
-surfilt = (tempdf["G2depth"] <= 10.) & (~pd.isna(tempdf["G2fco2_20_0"])) & (
-        (tempdf["G2fco2f"] == 2) | (tempdf["G2fco2f"] == 0))
-dfsurf = tempdf[surfilt]
-dfsurf.reset_index(drop=True, inplace=True)
-
-# Filter for only the uppermost measurement at each unique cast (if, e.g.
-# samples at 2 and 10 m)
-dfsurf['UNICAST'] = dfsurf.set_index(['G2cruise', 'G2station',
-                                      'G2cast']).index.factorize()[0] + 1
-surfacemostind = []
-for x in np.unique(dfsurf['UNICAST']):
-    surfacemostind.append(dfsurf['G2depth'].iloc[np.where(dfsurf[
-                                                              'UNICAST'] == x)].idxmin())
-dfsurfgood = dfsurf.iloc[surfacemostind].copy()
-
-# Change to UNIX date format and create Python datevector (to work internally)
-# Some hours and minutes are NA: change to 0.0
-dfsurfgood['G2hour'].iloc[np.where(dfsurfgood['G2hour'].isna())] = 0.0
-dfsurfgood['G2minute'].iloc[np.where(dfsurfgood['G2minute'].isna())] = 0.0
-tempdtframe = pd.DataFrame(
-    {'year': dfsurfgood['G2year'], 'month': dfsurfgood['G2month'],
-     'day': dfsurfgood['G2day'], 'hour': dfsurfgood['G2hour'],
-     'minute': dfsurfgood['G2minute']})
-dfsurfgood['DATEVECTOR1'] = pd.to_datetime(tempdtframe, utc=True)
-dfsurfgood[vardict['unixd']] = dfsurfgood['DATEVECTOR1'].astype(
-    'int64') // 10 ** 9
-dfsurfgood[vardict['datevec']] = dfsurfgood['DATEVECTOR1'].dt.strftime(
-    '%Y-%m-%dT%H:%M:%SZ')
-
-# Subset location and time
-morefilt = (dfsurfgood['G2latitude'] >= minlat) & (
-        dfsurfgood['G2latitude'] <= maxlat) & (
-                   dfsurfgood['G2longitude'] >= minlon) & (
-                   dfsurfgood['G2longitude'] <= maxlon) & (
-                   dfsurfgood['DATEVECTOR1'] >= pd.to_datetime(mindate)) & (
-                   dfsurfgood['DATEVECTOR1'] <= pd.to_datetime(maxdate))
-
-dfsurfgood = dfsurfgood[morefilt]
-dfsurf.reset_index(drop=True, inplace=True)
-
-# Assign Expocodes and DOIs
-# Transform expocode dataframes into dictionaries (easier to lookup)
-expocodesdict = expocodes.set_index('G2cruise')['EXPOCODE'].to_dict()
-doisdict = dois.set_index('G2cruise')['DOI'].to_dict()
-
-for cruises in dfsurfgood['G2cruise'].unique():
-    dfsurfgood.loc[dfsurfgood.G2cruise == cruises,
-                   'EXPOCODE'] = expocodesdict[cruises]
-    dfsurfgood.loc[dfsurfgood.G2cruise == cruises,
-                   'DOI'] = doisdict[cruises].rsplit('.org/', 1)[1]
-
-### CARBON STUFF
-### Calculate fCO2 in situ (in GLODAP it's at 20 C, 0dbar)
-# Define input and output conditions
-kwargs = dict(
-    par1_type=1,  # The first parameter is of type "1". meaning "alkalinity"
-    par1=dfsurfgood['G2talk'],  # value of the first parameter
-    par2_type=5,  # The second parameter is of type "5", meaning "fCO2"
-    par2=dfsurfgood['G2fco2_20_0'],  # value of the second parameter
-    salinity=dfsurfgood['G2salinity'],  # Salinity of the sample
-    temperature=20,  # T at input conditions
-    temperature_out=dfsurfgood['G2temperature'],  # T at output conditions
-    pressure=0,  # Pressure    at input conditions
-    pressure_out=dfsurfgood['G2pressure'],  # Pressure at output conditions
-    total_silicate=dfsurfgood['G2silicate'],  # Silicate in sample [umol/kg]
-    total_phosphate=dfsurfgood['G2phosphate'],  # Phosphate in sample [umol/kg]
-    opt_pH_scale=1,  # pH scale of the input ("1" means "Total Scale")
-    opt_k_carbonic=10,  # Choice of H2CO3 and HCO3- dissociation constants K1
-    # and K2 ("10" means "Lueker 2000")
-    opt_k_bisulfate=1,  # Choice of HSO4- dissociation constant KSO4 ("1"
-    # means "Dickson")
-    opt_total_borate=1,  # Choice of boron:sal ("1" means "Uppstrom")
-)
-start_time = time.time()
-print('CO2SYS Conditions have been defined!')
-results = pyco2.sys(**kwargs)
-print("--- %s seconds ---" % (time.time() - start_time))
-dfsurfgood['G2fco2'] = results['fCO2_out']
-
-# Assign calculation method (based on what data is available) 0: measured,
-# 1:f(Alk,DIC), 2ALK,pH, 3 DIC ph
-dfsurfgood[vardict['fco2wc']] = 9  # Data not available
-# dfsurfgood[vardict['dicc']]=0
-# dfsurfgood[vardict['alkc']]=0
-# dfsurfgood[vardict['phc']]=0
-
-calcindex = dfsurfgood.index[dfsurfgood[vardict['fco2wc']] == 0]
-# '0' means calculated
-for ind in calcindex:
-    if (dfsurfgood['G2fco2f'][ind] == 2):
-        dfsurfgood[vardict['fco2wc']][ind] = 0
-    elif (dfsurfgood['G2tco2f'][ind] == 1) & (dfsurfgood['G2talkf'][ind] == 1):
-        # Check if it should be 2 instead!
-        dfsurfgood[vardict['fco2wc']][ind] = 1
-    elif (dfsurfgood['G2phtsinsitutpf'][ind] == 1) & (
-            dfsurfgood['G2talkf'][ind] == 1):
-        dfsurfgood[vardict['fco2wc']][ind] = 2
-    elif (dfsurfgood['G2tco2f'][ind] == 1) & (
-            dfsurfgood['G2phtsinsitutpf'][ind] == 1):
-        dfsurfgood[vardict['fco2wc']][ind] = 3
-
-# Rename columns
-dfsurfgood.rename(
-    columns={'EXPOCODE': vardict['id'], 'DOI': vardict['doi'],
-             'G2latitude': vardict['lat'], 'G2longitude': vardict['lon'],
-             'G2depth': vardict['dep'], 'G2temperature': vardict['temp'],
-             'G2salinity': vardict['sal'], 'G2salinityf': vardict['salf'],
-             'G2tco2': vardict['dic'], 'G2tco2qc': vardict['dicf'],
-             'G2talk': vardict['alk'], 'G2talkqc': vardict['alkf'],
-             'G2phtsinsitutp': vardict['ph'], 'G2phtsqc': vardict['phf'],
-             'G2fco2': vardict['fco2w'], 'G2fco2f': vardict['fco2wf']},
-    inplace=True)
-
-print(tempdf.shape, dfsurf.shape, dfsurfgood.shape)
-
-# Add source (SOCAT, GLODAP, ARGO, etc...)
-dfsurfgood['SOURCE'] = source
-
-# Rename and reset indices
-printdf = dfsurfgood
-printdf.reset_index(drop=True, inplace=True)
-
-print('GLODAP frame size is ')
-print(printdf.shape)
+#
+# # Subset for surface and reset indices
+# # Upper 10 m, with fCO2 measurement (measured and calculated; # Flag 2 for Good,
+# # MEASURED. Flag 0 is for calculated)
+# surfilt = (tempdf["G2depth"] <= 10.) & (~pd.isna(tempdf["G2fco2_20_0"])) & (
+#         (tempdf["G2fco2f"] == 2) | (tempdf["G2fco2f"] == 0))
+# dfsurf = tempdf[surfilt]
+# dfsurf.reset_index(drop=True, inplace=True)
+#
+# # Filter for only the uppermost measurement at each unique cast (if, e.g.
+# # samples at 2 and 10 m)
+# dfsurf['UNICAST'] = dfsurf.set_index(['G2cruise', 'G2station',
+#                                       'G2cast']).index.factorize()[0] + 1
+# surfacemostind = []
+# for x in np.unique(dfsurf['UNICAST']):
+#     surfacemostind.append(dfsurf['G2depth'].iloc[np.where(dfsurf[
+#                                                               'UNICAST'] == x)].idxmin())
+# dfsurfgood = dfsurf.iloc[surfacemostind].copy()
+#
+# # Change to UNIX date format and create Python datevector (to work internally)
+# # Some hours and minutes are NA: change to 0.0
+# dfsurfgood['G2hour'].iloc[np.where(dfsurfgood['G2hour'].isna())] = 0.0
+# dfsurfgood['G2minute'].iloc[np.where(dfsurfgood['G2minute'].isna())] = 0.0
+# tempdtframe = pd.DataFrame(
+#     {'year': dfsurfgood['G2year'], 'month': dfsurfgood['G2month'],
+#      'day': dfsurfgood['G2day'], 'hour': dfsurfgood['G2hour'],
+#      'minute': dfsurfgood['G2minute']})
+# dfsurfgood['DATEVECTOR1'] = pd.to_datetime(tempdtframe, utc=True)
+# dfsurfgood[vardict['unixd']] = dfsurfgood['DATEVECTOR1'].astype(
+#     'int64') // 10 ** 9
+# dfsurfgood[vardict['datevec']] = dfsurfgood['DATEVECTOR1'].dt.strftime(
+#     '%Y-%m-%dT%H:%M:%SZ')
+#
+#
+#
+#
+# # Rename columns
+# dfsurfgood.rename(
+#     columns={'EXPOCODE': vardict['id'], 'DOI': vardict['doi'],
+#              'G2latitude': vardict['lat'], 'G2longitude': vardict['lon'],
+#              'G2depth': vardict['dep'], 'G2temperature': vardict['temp'],
+#              'G2salinity': vardict['sal'], 'G2salinityf': vardict['salf'],
+#              'G2tco2': vardict['dic'], 'G2tco2qc': vardict['dicf'],
+#              'G2talk': vardict['alk'], 'G2talkqc': vardict['alkf'],
+#              'G2phtsinsitutp': vardict['ph'], 'G2phtsqc': vardict['phf'],
+#              'G2fco2': vardict['fco2w'], 'G2fco2f': vardict['fco2wf']},
+#     inplace=True)
+#
+# print(tempdf.shape, dfsurf.shape, dfsurfgood.shape)
+#
+# # Add source (SOCAT, GLODAP, ARGO, etc...)
+# dfsurfgood['SOURCE'] = source
+#
+# # Rename and reset indices
+# printdf = dfsurfgood
+# printdf.reset_index(drop=True, inplace=True)
+#
+# print('GLODAP frame size is ')
+# print(printdf.shape)
