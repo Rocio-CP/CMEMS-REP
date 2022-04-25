@@ -34,10 +34,49 @@ sourcefile = [i for i in GLODAP_files if 'GLODAP' in i][0]
 doifile = [i for i in GLODAP_files if 'DOI' in i][0]
 expocodefile = [i for i in GLODAP_files if 'EXPOCODES' in i][0]
 
+all_glodap_input_variables=['G2cruise','G2region','G2station','G2cast',
+                            'G2year','G2month','G2day','G2hour','G2minute',
+                            'G2latitude','G2longitude','G2bottomdepth','G2maxsampdepth',
+                            'G2bottle','G2pressure','G2depth','G2temperature','G2theta',
+                            'G2salinity','G2salinityf','G2salinityqc',
+                            'G2sigma0','G2sigma1','G2sigma2','G2sigma3','G2sigma4','G2gamma',
+                            'G2oxygen','G2oxygenf','G2oxygenqc','G2aou','G2aouf',
+                            'G2nitrate','G2nitratef','G2nitrateqc','G2nitrite','G2nitritef',
+                            'G2silicate','G2silicatef','G2silicateqc',
+                            'G2phosphate','G2phosphatef','G2phosphateqc',
+                            'G2tco2','G2tco2f','G2tco2qc','G2talk','G2talkf','G2talkqc',
+                            'G2fco2','G2fco2f','G2fco2temp',
+                            'G2phts25p0','G2phts25p0f','G2phtsinsitutp','G2phtsinsitutpf','G2phtsqc',
+                            'G2cfc11','G2pcfc11','G2cfc11f','G2cfc11qc',
+                            'G2cfc12','G2pcfc12','G2cfc12f','G2cfc12qc',
+                            'G2cfc113','G2pcfc113','G2cfc113f','G2cfc113qc',
+                            'G2ccl4','G2pccl4','G2ccl4f','G2ccl4qc',
+                            'G2sf6','G2psf6','G2sf6f',
+                            'G2c13','G2c13f','G2c13qc','G2c14','G2c14f','G2c14err',
+                            'G2h3','G2h3f','G2h3err','G2he3','G2he3f','G2he3err',
+                            'G2he','G2hef','G2heerr','G2neon','G2neonf','G2neonerr',
+                            'G2o18','G2o18f','G2toc','G2tocf','G2doc','G2docf',
+                            'G2don','G2donf','G2tdn','G2tdnf','G2chla','G2chlaf']
+# pd.Int16Dtype() is the type of pandas integer that allows for na
+all_glodap_input_variables_dtype=['UInt64']*all_glodap_input_variables.__len__()
+for n,gi in enumerate(all_glodap_input_variables):
+    if not gi.endswith('f') and 'qc' not in gi and gi not in ['G2cruise','G2region','G2cast','G2year','G2month','G2day','G2hour','G2minute','G2bottle']:
+           all_glodap_input_variables_dtype[n]='float'
+dtype_dict=dict(zip(all_glodap_input_variables,all_glodap_input_variables_dtype))
+from datetime import datetime
+custom_date_parser = lambda x: datetime.strptime(x, "%Y %m %d %H:%M")
+
 # Read files
+# parse_dates does not work because some hours and minutes are nan
 tempdf = pd.read_csv(os.path.join(input_files_dir, sourcefile), sep=separator,
-                     skiprows=headerlines, dtype=ddtype, na_values=-9999,
+                     skiprows=headerlines, na_values=-9999,
+                     dtype=dtype_dict,
                      on_bad_lines='skip')
+# Change NaN hour/minute to 0
+tempdf.loc[np.isnan(tempdf['G2hour']), 'G2hour'] = 0
+tempdf.loc[np.isnan(tempdf['G2minute']), 'G2minute'] = 0
+
+
 dois = pd.read_csv(os.path.join(input_files_dir, doifile), sep='\t', header=None,
                    names=['G2cruise', 'DOI'], dtype=ddtype, on_bad_lines='skip',
                    encoding='utf_16_le')
@@ -95,9 +134,6 @@ depths_as_nominal = nominal_depths_array[
     abs(actual_depths_array[None, :] - nominal_depths_array[:, None]).argmin(axis=0)]
 tempdf['G2depthnominal'] = depths_as_nominal
 
-# Change NaN hour/minute to 0
-tempdf.loc[np.isnan(tempdf['G2hour']), 'G2hour'] = 0
-tempdf.loc[np.isnan(tempdf['G2minute']), 'G2minute'] = 0
 
 # Rename G2fco2 to G2fco2_20_0 (in GLODAP, it's given at 20 dg, 0dbar).
 tempdf.rename(columns={'G2fco2': 'G2fco2_20_0'}, inplace=True)
@@ -191,11 +227,23 @@ for pc in unique_platform_codes:
     pi=";".join(pi)
 
     # Extract sub-dataframe
-    current_dataframe = tempdf[filter_expocodes_data,filter_variables]
+    current_dataframe = tempdf.loc[filter_expocodes_data,filter_variables]
 
     # Create date variable
+    tempdtframe = pd.DataFrame(
+        {'year': current_dataframe['G2year'], 'month': current_dataframe['G2month'],
+         'day': current_dataframe['G2day'], 'hour': current_dataframe['G2hour'],
+         'minute': current_dataframe['G2minute']})
+    #tempdf['DATEVECTOR1'] = pd.to_datetime(tempdtframe, utc=True)
+
+    # Create days-from-1950 numeric date
+    datetime_diff_1950 = tempdtframe - pd.Timestamp('1950-01-01T00:00:00', tz='UTC')
+    datetime_numeric_1950 = datetime_diff_1950.dt.total_seconds() / 86400
+    time_variable = datetime_numeric_1950[0:datetime_numeric_1950.idxmax() + 1]
 
     # Order by increasing depth values
+
+
 
     # Average at same depths and casts
 
