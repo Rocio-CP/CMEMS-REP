@@ -49,82 +49,70 @@
       "wmo_inst_type": ""
     }
   ],
-  "TIME_dimatt": [
-    {"datatype": "d","dimensions": "TIME"},
-    {
-      "long_name": "Time",
-      "standard_name": "time",
-      "units": "days since 1950-01-01T00:00:00Z",
-      "valid_min": -90000.0,
-      "valid_max": 90000.0,
-      "QC_indicator": "1",
-      "uncertainty": "",
-      "comment": "",
-      "axis": "T",
-      "ancillary_variables": "TIME_QC",
-      "calendar": "standard"
-    }
-  ],
-  "LATITUDE_dimatt": [
-    {"datatype": "f","dimensions": "LATITUDE"},
-    {
-      "long_name": "Latitude of each location",
-      "standard_name": "latitude",
-      "units": "degree_north",
-      "valid_min": -90.0,
-      "valid_max": 90.0,
-      "QC_indicator": "1",
-      "uncertainty": "",
-      "comment": "",
-      "axis": "Y",
-      "ancillary_variables": "POSITION_QC"
-    }
-  ],
-  "LONGITUDE_dimatt": [
-    {"datatype": "f","dimensions": "LONGITUDE"},
-    {
-      "long_name": "Longitude of each location",
-      "standard_name": "longitude",
-      "units": "degree_east",
-      "valid_min": -180.0,
-      "valid_max": 180.0,
-      "QC_indicator": "1",
-      "uncertainty": "",
-      "comment": "",
-      "axis": "X",
-      "ancillary_variables": "POSITION_QC"
-    }
-  ],
-  "DEPH_dimatt": [
-    {"datatype": "f","dimensions": ["TIME","DEPTH"]},
-    {
-      "long_name": "Depth",
-      "standard_name": "depth",
-      "units": "m",
-      "positive": "down",
-      "valid_min": -12000.0,
-      "valid_max": 12000.0,
-      "uncertainty": "",
-      "comment": "",
-      "axis": "Z",
-      "reference": "sea_level",
-      "data_mode": "D",
-      "ancillary_variables": "DEPH_QC"
-    }
-  ],
-  "PRES_varatt": [
-    {"datatype": "f","dimensions": ["TIME","DEPTH"]},
-    {
-      "long_name": "Sea pressure",
-      "standard_name": "sea_water_pressure",
-      "units": "dbar",
-      "uncertainty": "",
-      "comment": "",
-      "axis": "",
-      "positive": "down",
-      "data_mode": "D",
-      "ancillary_variables": "PRES_QC"
-    }
+  "dimatt": [
+    "TIME": [
+      {"datatype": "f4","dimensions": "TIME"},
+      {
+        "long_name": "Time",
+        "standard_name": "time",
+        "units": "days since 1950-01-01T00:00:00Z",
+        "valid_min": -90000.0,
+        "valid_max": 90000.0,
+        "QC_indicator": "1",
+        "uncertainty": "",
+        "comment": "",
+        "axis": "T",
+        "ancillary_variables": "TIME_QC",
+        "calendar": "standard"
+      }
+    ],
+    "LATITUDE": [
+      {"datatype": "f8","dimensions": "LATITUDE"},
+      {
+        "long_name": "Latitude of each location",
+        "standard_name": "latitude",
+        "units": "degree_north",
+        "valid_min": -90.0,
+        "valid_max": 90.0,
+        "QC_indicator": "1",
+        "uncertainty": "",
+        "comment": "",
+        "axis": "Y",
+        "ancillary_variables": "POSITION_QC"
+      }
+    ],
+    "LONGITUDE": [
+      {"datatype": "f8","dimensions": "LONGITUDE"},
+      {
+        "long_name": "Longitude of each location",
+        "standard_name": "longitude",
+        "units": "degree_east",
+        "valid_min": -180.0,
+        "valid_max": 180.0,
+        "QC_indicator": "1",
+        "uncertainty": "",
+        "comment": "",
+        "axis": "X",
+        "ancillary_variables": "POSITION_QC"
+      }
+    ],
+    "DEPH": [
+      {"datatype": "f8","dimensions": ["TIME","DEPTH"]},
+      {
+        "long_name": "Depth",
+        "standard_name": "depth",
+        "units": "m",
+        "positive": "down",
+        "valid_min": -12000.0,
+        "valid_max": 12000.0,
+        "uncertainty": "",
+        "comment": "",
+        "axis": "Z",
+        "reference": "sea_level",
+        "data_mode": "D",
+        "ancillary_variables": "DEPH_QC"
+      }
+    ],
   ],
   "variable_varatt": [
     {"datatype": "i4","dimensions": ["TIME","DEPTH"]},
