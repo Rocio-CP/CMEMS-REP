@@ -7,14 +7,14 @@
       "title": "PENDING: Global Ocean - In Situ reprocessed carbon observations - GLODAPv2.2021",
       "summary": "",
       "naming_authority": "Copernicus Marine In Situ",
-      "ID": "",
+      "id": "",
       "wmo_platform_code": "",
       "ices_platform_code": "",
       "source": "",
       "source_platform_category_code":"",
       "institution_edmo_code": "",
       "institution": "",
-      "institution_reference": "",
+      "institution_references": "",
       "site_code": "",
       "comment": "",
       "contact": "data.manager@bcdc.no cmems-service@ifremer.fr",
@@ -33,7 +33,7 @@
       "format_version": "1.4",
       "Conventions": "CF-1.6 Copernicus-InSituTAC-FormatManual-1.42 Copernicus-InSituTAC-SRD-1.5 Copernicus-InSituTAC-ParametersList-3.2.0",
       "netcdf_version": "netCDF-4 classic model",
-      "references": "https://glodap.info http://marine.copernicus.eu http://www.marineinsitu.eu",
+      "references": "http://marine.copernicus.eu http://www.marineinsitu.eu https://glodap.info",
       "data_assembly_center": "University of Bergen",
       "update_interval": "void",
       "citation": "These data were collected and made freely available by the Copernicus project and the programs that contribute to it. GLODAPv2.2021 is described in Lauvset et al. (2021) https://doi.org/10.5194/essd-2021-234; traceable citations are essential for justifying and sustaining the effort.",
@@ -50,75 +50,93 @@
     }
   ],
   "dimatt": [
-    "TIME": [
-      {"datatype": "f4","dimensions": "TIME"},
-      {
-        "long_name": "Time",
-        "standard_name": "time",
-        "units": "days since 1950-01-01T00:00:00Z",
-        "valid_min": -90000.0,
-        "valid_max": 90000.0,
-        "QC_indicator": "1",
-        "uncertainty": "",
-        "comment": "",
-        "axis": "T",
-        "ancillary_variables": "TIME_QC",
-        "calendar": "standard"
-      }
-    ],
-    "LATITUDE": [
-      {"datatype": "f8","dimensions": "LATITUDE"},
-      {
-        "long_name": "Latitude of each location",
-        "standard_name": "latitude",
-        "units": "degree_north",
-        "valid_min": -90.0,
-        "valid_max": 90.0,
-        "QC_indicator": "1",
-        "uncertainty": "",
-        "comment": "",
-        "axis": "Y",
-        "ancillary_variables": "POSITION_QC"
-      }
-    ],
-    "LONGITUDE": [
-      {"datatype": "f8","dimensions": "LONGITUDE"},
-      {
-        "long_name": "Longitude of each location",
-        "standard_name": "longitude",
-        "units": "degree_east",
-        "valid_min": -180.0,
-        "valid_max": 180.0,
-        "QC_indicator": "1",
-        "uncertainty": "",
-        "comment": "",
-        "axis": "X",
-        "ancillary_variables": "POSITION_QC"
-      }
-    ],
-    "DEPH": [
-      {"datatype": "f8","dimensions": ["TIME","DEPTH"]},
-      {
-        "long_name": "Depth",
-        "standard_name": "depth",
-        "units": "m",
-        "positive": "down",
-        "valid_min": -12000.0,
-        "valid_max": 12000.0,
-        "uncertainty": "",
-        "comment": "",
-        "axis": "Z",
-        "reference": "sea_level",
-        "data_mode": "D",
-        "ancillary_variables": "DEPH_QC"
-      }
-    ],
+    {
+      "TIME": [
+        {
+          "datatype": "double",
+          "dimensions": "TIME"
+        },
+        {
+          "long_name": "Time",
+          "standard_name": "time",
+          "units": "days since 1950-01-01T00:00:00Z",
+          "valid_min": -90000.0,
+          "valid_max": 90000.0,
+          "QC_indicator": "1",
+          "uncertainty": "",
+          "comment": "",
+          "axis": "T",
+          "ancillary_variables": "TIME_QC",
+          "calendar": "standard"
+        }
+      ],
+      "LATITUDE": [
+        {
+          "datatype": "float",
+          "dimensions": "LATITUDE"
+        },
+        {
+          "long_name": "Latitude of each location",
+          "standard_name": "latitude",
+          "units": "degree_north",
+          "valid_min": -90.0,
+          "valid_max": 90.0,
+          "QC_indicator": "1",
+          "uncertainty": "",
+          "comment": "",
+          "axis": "Y",
+          "ancillary_variables": "POSITION_QC"
+        }
+      ],
+      "LONGITUDE": [
+        {
+          "datatype": "float",
+          "dimensions": "LONGITUDE"
+        },
+        {
+          "long_name": "Longitude of each location",
+          "standard_name": "longitude",
+          "units": "degree_east",
+          "valid_min": -180.0,
+          "valid_max": 180.0,
+          "QC_indicator": "1",
+          "uncertainty": "",
+          "comment": "",
+          "axis": "X",
+          "ancillary_variables": "POSITION_QC"
+        }
+      ],
+      "DEPH": [
+        {
+          "datatype": "float",
+          "dimensions": [
+            "TIME",
+            "DEPTH"
+          ]
+        },
+        {
+          "long_name": "Depth",
+          "standard_name": "depth",
+          "units": "m",
+          "positive": "down",
+          "valid_min": -12000.0,
+          "valid_max": 12000.0,
+          "uncertainty": "",
+          "comment": "",
+          "axis": "Z",
+          "reference": "sea_level",
+          "data_mode": "D",
+          "ancillary_variables": "DEPH_QC"
+        }
+      ]
+    }
   ],
   "variable_varatt": [
-    {"datatype": "i4","dimensions": ["TIME","DEPTH"]},
+    {"_FillValue": -127,"datatype": "i4","dimensions": ["TIME","DEPTH"]},
     {
       "standard_name": "",
       "units": "",
+      "_FillValue": -127,
       "add_offset": 0.0,
       "scale_factor": 0.001,
       "long_name": "",
@@ -134,7 +152,7 @@
       "type_of_analysis": "",
       "sensor_depth": "",
       "sensor_mount": "mounted_on_shipborne_profiler",
-      "sensor_orientation": "vertical",
+      "sensor_orientation": " ",
       "data_mode": "D",
       "ancillary_variables": ""
     }

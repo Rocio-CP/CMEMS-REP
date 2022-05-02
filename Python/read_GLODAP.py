@@ -156,9 +156,9 @@ for pc in unique_platform_codes:
     global_attributes = CMEMSdict.global_attributes_dictionary(current_expocodes_info, current_dataframe)
 
     if global_attributes['source_platform_category_code'] == '31' :
-        nc_filename=output_files_dir+'VESSEL/'+global_attributes['ID']
+        nc_filename=output_files_dir+'VESSEL/'+global_attributes['id']
     else :
-        nc_filename=output_files_dir+'ETC/'+global_attributes['ID']
+        nc_filename=output_files_dir+'ETC/'+global_attributes['id']
 
     # Create NetCDF file
    # nc_filename = output_file_full_name
@@ -166,26 +166,25 @@ for pc in unique_platform_codes:
 
     # Create dimensions and their variables
     for d in dimension_dict['dim_name'].keys():
-        dimension_attributes = CMEMSdict.dimension_attributes_dictionary(variable_name)
-
+        dimension_attributes = CMEMSdict.dimension_attributes_dictionary(dimension_dict['dim_var_name'][d])
 
         dim=nc.createDimension(dimension_dict['dim_name'][d],
                            current_dataframe[d].sort_values().unique().__len__())
-        dim_variable=nc.CreateVariable(dimension_dict['dim_var_name'][d],
-                                       dimension_attributes[dimension_dict['dim_var_name'][d]][0]["datatype"],
-                                       dimension_attributes[dimension_dict['dim_var_name'][d]][0]["dimensions"])
-        dim_variable=current_dataframe[d].sort_values().unique()
+        dim_variable=nc.createVariable(dimension_dict['dim_var_name'][d],
+                                       dimension_attributes[0]["datatype"],
+                                       dimension_attributes[0]["dimensions"])
+        if d.__contains__('depth'):
+            # Create a duplicate variable of depth; otherwise pivot_tables doesn't work
+            current_dataframe['dup_G2depthnominal'] = current_dataframe['G2depthnominal']
+            dim_variable[:]= pd.pivot_table(current_dataframe, index="G2datetime", columns="G2depthnominal",
+                                     values="dup_G2depthnominal", aggfunc="mean")
+        else:
+            dim_variable[:]=current_dataframe[d].sort_values().unique()
 
         for key, value in dimension_attributes[1].items():
             dim_variable.setncattr(key, value)
 
 
-    #timedim = nc.createDimension("TIME", current_dataframe['G2datetime'].sort_values().unique().__len__())
-    #depthdim = nc.createDimension("DEPTH", current_dataframe['G2depthnominal'].sort_values().unique().__len__())
-#    depthvar = nc.createVariable("DEPH", "float", "DEPTH")
-#    depthvar[:]=current_dataframe['G2depthnominal'].sort_values().unique()
-#    timevar = nc.createVariable("TIME", "float", "TIME")
-#    timevar[:]=current_dataframe['G2datetime'].sort_values().unique()
 
     # Create variables
     for variable_ind, variable_name in enumerate(variables_dict['SDN'].keys()):
@@ -194,7 +193,8 @@ for pc in unique_platform_codes:
 
         variable = nc.createVariable(variables_dict['SDN'][variable_name],
                                      variable_attributes[0]["datatype"],
-                                     variable_attributes[0]["dimensions"])
+                                     variable_attributes[0]["dimensions"],
+                                     variable_attributes[0]["_FillValue"])
         value_table = pd.pivot_table(current_dataframe, index="G2datetime", columns="G2depthnominal",
                                      values=variable_name, aggfunc="mean")
         value_table_nobs = pd.pivot_table(current_dataframe, index="G2datetime", columns="G2depthnominal",

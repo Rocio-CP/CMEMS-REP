@@ -61,7 +61,7 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe):
 
     all_attributes['globalatt'][0]['platform_code']= current_expocodes_info['PlatformCode'].unique().item() # only alphanumeric characters
     all_attributes['globalatt'][0]['platform_name']= current_expocodes_info['Name'].unique().item()
-    all_attributes['globalatt'][0]['ID']='GL_PR_BO_'+all_attributes['globalatt'][0]['platform_code']+'-GLODAPv22022.nc'
+    all_attributes['globalatt'][0]['id']='GL_PR_BO_'+all_attributes['globalatt'][0]['platform_code']+'-GLODAPv22022.nc'
     all_attributes['globalatt'][0]['wmo_platform_code']=current_expocodes_info['CallSign_WMO'].unique().item()
     all_attributes['globalatt'][0]['ices_platform_code']=current_expocodes_info['ICEScode'].unique().item()
 
@@ -84,12 +84,15 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe):
     all_attributes['globalatt'][0]['institution_edmo_code'] = ",".join(np.unique([*edmo, *pi_edmo]))
 
     # Geospatial and time limits
-    all_attributes['globalatt'][0]['geospatial_lat_min'] =current_dataframe['G2latitude'].min()
-    all_attributes['globalatt'][0]['geospatial_lat_max'] =current_dataframe['G2latitude'].max()
-    all_attributes['globalatt'][0]['geospatial_lon_min'] =current_dataframe['G2longitude'].min()
-    all_attributes['globalatt'][0]['geospatial_lon_max'] =current_dataframe['G2longitude'].max()
-    all_attributes['globalatt'][0]['time_coverage_start'] =current_dataframe['G2datetime'].iloc[0]
-    all_attributes['globalatt'][0]['time_coverage_end'] =current_dataframe['G2datetime'].iloc[-1]
+    all_attributes['globalatt'][0]['geospatial_lat_min'] =current_dataframe['G2latitude'].min().__str__()
+    all_attributes['globalatt'][0]['geospatial_lat_max'] =current_dataframe['G2latitude'].max().__str__()
+    all_attributes['globalatt'][0]['geospatial_lon_min'] =current_dataframe['G2longitude'].min().__str__()
+    all_attributes['globalatt'][0]['geospatial_lon_max'] =current_dataframe['G2longitude'].max().__str__()
+    all_attributes['globalatt'][0]['geospatial_lon_min'] =current_dataframe['G2longitude'].min().__str__()
+    all_attributes['globalatt'][0]['geospatial_lon_max'] =current_dataframe['G2longitude'].max().__str__()
+    # CORRECT THE DATE FORMATS!!
+    #all_attributes['globalatt'][0]['time_coverage_start'] =current_dataframe['G2datetime'].iloc[0].__str__()
+    #all_attributes['globalatt'][0]['time_coverage_end'] =current_dataframe['G2datetime'].iloc[-1].__str__()
 
     # PI attributes
     pi=current_expocodes_info['PI'].unique()
@@ -105,8 +108,13 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe):
 
     return all_attributes['globalatt'][0]
 
-def dimension_attributes_dictionary():
-    return print("foo")
+def dimension_attributes_dictionary(dimension_variable_name):
+    import json
+    with open("CMEMS_INSTAC_metadata.json", "r") as template:
+        all_attributes = json.load(template)
+    template.close()
+    dimension_attributes = all_attributes['dimatt'][0][dimension_variable_name]
+    return dimension_attributes
 
 def variable_attributes_dictionary(variable_name):
     import json
@@ -118,7 +126,7 @@ def variable_attributes_dictionary(variable_name):
     all_attributes['variable_varatt'][1]["standard_name"] = variables_dict['CF'][variable_name]
     all_attributes['variable_varatt'][1]["units"] = variables_dict['unit'][variable_name]
     all_attributes['variable_varatt'][1]["long_name"] = variables_dict['long'][variable_name]
-    all_attributes['variable_varatt'][1]["ancillary_variables"] = variable_name + "_QC"
+    all_attributes['variable_varatt'][1]["ancillary_variables"] = variables_dict['SDN'][variable_name] + "_QC"
 
     all_attributes['QC_varatt'][1]["long_name"] = variables_dict['long'][variable_name] + " quality flag"
 
