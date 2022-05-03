@@ -1,8 +1,8 @@
 def common_dictionaries():
     # Some parameters / unchanging values / dictionaries
-    dimensions=('G2datetime', 'G2depthnominal','G2latitude','G2longitude')
-    dimension_flags=('G2datetimef','G2depthnominalf','G2positionf','G2positionf')
-    SDN_dimension_names=('TIME','DEPTH','LATITUDE','LONGITUDE')
+    dimensions=('G2datetime', 'G2depthnominal','G2latitude','G2longitude','')
+    dimension_flags=('G2datetimef','G2depthnominalf','','','G2positionf')
+    SDN_dimension_names=('TIME','DEPTH','LATITUDE','LONGITUDE','POSITION')
     SDN_dimension_variable_names=('TIME','DEPH','LATITUDE','LONGITUDE')
     dimension_dict = {}
     dimension_dict['flag'] = dict(zip(dimensions, dimension_flags))
@@ -84,12 +84,12 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe):
     all_attributes['globalatt'][0]['institution_edmo_code'] = ",".join(np.unique([*edmo, *pi_edmo]))
 
     # Geospatial and time limits
-    all_attributes['globalatt'][0]['geospatial_lat_min'] =current_dataframe['G2latitude'].min().__str__()
+    all_attributes['globalatt'][0]['geospatial_lat_min'] =current_dataframe['G2latitude'].min()
     all_attributes['globalatt'][0]['geospatial_lat_max'] =current_dataframe['G2latitude'].max().__str__()
     all_attributes['globalatt'][0]['geospatial_lon_min'] =current_dataframe['G2longitude'].min().__str__()
     all_attributes['globalatt'][0]['geospatial_lon_max'] =current_dataframe['G2longitude'].max().__str__()
-    all_attributes['globalatt'][0]['geospatial_lon_min'] =current_dataframe['G2longitude'].min().__str__()
-    all_attributes['globalatt'][0]['geospatial_lon_max'] =current_dataframe['G2longitude'].max().__str__()
+    all_attributes['globalatt'][0]['geospatial_vertical_min'] =current_dataframe['G2depthnominal'].min().__str__()
+    all_attributes['globalatt'][0]['geospatial_vertical_max'] =current_dataframe['G2depthnominal'].max().__str__()
     # CORRECT THE DATE FORMATS!!
     #all_attributes['globalatt'][0]['time_coverage_start'] =current_dataframe['G2datetime'].iloc[0].__str__()
     #all_attributes['globalatt'][0]['time_coverage_end'] =current_dataframe['G2datetime'].iloc[-1].__str__()

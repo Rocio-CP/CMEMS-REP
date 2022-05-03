@@ -53,7 +53,7 @@
     {
       "TIME": [
         {
-          "datatype": "double",
+          "datatype": "d",
           "dimensions": "TIME"
         },
         {
@@ -72,7 +72,7 @@
       ],
       "LATITUDE": [
         {
-          "datatype": "float",
+          "datatype": "f",
           "dimensions": "LATITUDE"
         },
         {
@@ -90,7 +90,7 @@
       ],
       "LONGITUDE": [
         {
-          "datatype": "float",
+          "datatype": "f",
           "dimensions": "LONGITUDE"
         },
         {
@@ -108,7 +108,7 @@
       ],
       "DEPH": [
         {
-          "datatype": "float",
+          "datatype": "f",
           "dimensions": [
             "TIME",
             "DEPTH"
@@ -132,11 +132,10 @@
     }
   ],
   "variable_varatt": [
-    {"_FillValue": -127,"datatype": "i4","dimensions": ["TIME","DEPTH"]},
+    {"_FillValue": -2147483647,"datatype": "i4","dimensions": ["TIME","DEPTH"]},
     {
       "standard_name": "",
       "units": "",
-      "_FillValue": -127,
       "add_offset": 0.0,
       "scale_factor": 0.001,
       "long_name": "",

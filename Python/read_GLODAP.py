@@ -166,20 +166,29 @@ for pc in unique_platform_codes:
 
     # Create dimensions and their variables
     for d in dimension_dict['dim_name'].keys():
-        dimension_attributes = CMEMSdict.dimension_attributes_dictionary(dimension_dict['dim_var_name'][d])
 
         dim=nc.createDimension(dimension_dict['dim_name'][d],
-                           current_dataframe[d].sort_values().unique().__len__())
+                           current_dataframe['G2datetime'].sort_values().unique().__len__())
+
+    time=nc.createVariable('TIME','d','TIME')
+    time[:]
+
+    for d in dimension_dict['dim_var_name'].values():
+        dimension_attributes = CMEMSdict.dimension_attributes_dictionary(dimension_dict['dim_var_name'][d])
+
         dim_variable=nc.createVariable(dimension_dict['dim_var_name'][d],
                                        dimension_attributes[0]["datatype"],
                                        dimension_attributes[0]["dimensions"])
+
         if d.__contains__('depth'):
             # Create a duplicate variable of depth; otherwise pivot_tables doesn't work
             current_dataframe['dup_G2depthnominal'] = current_dataframe['G2depthnominal']
             dim_variable[:]= pd.pivot_table(current_dataframe, index="G2datetime", columns="G2depthnominal",
                                      values="dup_G2depthnominal", aggfunc="mean")
-        else:
+        elif d.__contains__('time'):
             dim_variable[:]=current_dataframe[d].sort_values().unique()
+        else:
+            d.__contains__('itude')
 
         for key, value in dimension_attributes[1].items():
             dim_variable.setncattr(key, value)
@@ -194,7 +203,7 @@ for pc in unique_platform_codes:
         variable = nc.createVariable(variables_dict['SDN'][variable_name],
                                      variable_attributes[0]["datatype"],
                                      variable_attributes[0]["dimensions"],
-                                     variable_attributes[0]["_FillValue"])
+                                     fill_value=variable_attributes[0]["_FillValue"])
         value_table = pd.pivot_table(current_dataframe, index="G2datetime", columns="G2depthnominal",
                                      values=variable_name, aggfunc="mean")
         value_table_nobs = pd.pivot_table(current_dataframe, index="G2datetime", columns="G2depthnominal",
@@ -202,7 +211,7 @@ for pc in unique_platform_codes:
         value_table[value_table.isna()] = netCDF4.default_fillvals['i4']
         variable[:] = value_table*1000
 
-        #variable_attributes = attributes[variable_name + "_varatt"][1]
+
         for key, value in variable_attributes[1].items():
             variable.setncattr(key, value)
 
@@ -212,9 +221,10 @@ for pc in unique_platform_codes:
         value_qc_table[value_table_nobs > 1]= 8
         value_qc_table[value_qc_table.isna()] = 9
 #        value_qc_table[value_table.isna()] = netCDF4.default_fillvals['i1']
-        variableqc = nc.createVariable(variable_name+"_QC",
+        variableqc = nc.createVariable(variables_dict['SDN'][variable_name]+"_QC",
                                      QC_attributes[0]["datatype"],
-                                     QC_attributes[0]["dimensions"])
+                                     QC_attributes[0]["dimensions"],
+                                     fill_value=QC_attributes[0]["_FillValue"])
         variableqc[:] = value_qc_table
 
         # Variable (and QC variable) attributes
