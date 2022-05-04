@@ -128,7 +128,17 @@ def variable_attributes_dictionary(variable_name):
     all_attributes['variable_varatt'][1]["long_name"] = variables_dict['long'][variable_name]
     all_attributes['variable_varatt'][1]["ancillary_variables"] = variables_dict['SDN'][variable_name] + "_QC"
 
+    return all_attributes['variable_varatt']
+
+def variable_qc_attributes_dictionary(variable_name):
+    import json
+    _,variables_dict,_ = common_dictionaries()
+    with open("CMEMS_INSTAC_metadata.json", "r") as template:
+        all_attributes = json.load(template)
+    template.close()
+
     all_attributes['QC_varatt'][1]["long_name"] = variables_dict['long'][variable_name] + " quality flag"
 
-    return all_attributes['variable_varatt'], all_attributes['QC_varatt']
+    return all_attributes['QC_varatt']
+
 

@@ -152,7 +152,6 @@ for pc in unique_platform_codes:
 
     # Extract sub-dataframe
     current_dataframe = tempdf.loc[filter_expocodes_data, in_CMEMS_variables]
-
     global_attributes = CMEMSdict.global_attributes_dictionary(current_expocodes_info, current_dataframe)
 
     if global_attributes['source_platform_category_code'] == '31' :
@@ -163,32 +162,36 @@ for pc in unique_platform_codes:
     # Create NetCDF file
    # nc_filename = output_file_full_name
     nc = netCDF4.Dataset(nc_filename, format="NETCDF4_CLASSIC", mode="w")
+    # Subset to get the values for the TIME, LONGITUDE and LATITUDE dimension variables
+    timedim_dataframe = current_dataframe[['G2datetime', 'G2latitude', 'G2longitude']]
+    timedim_dataframe=timedim_dataframe.drop_duplicates(subset=['G2datetime'])
+    timedim_dataframe=timedim_dataframe.sort_values('G2datetime')
 
-    # Create dimensions and their variables
-    for d in dimension_dict['dim_name'].keys():
+    # Create dimensions and their variables (not loop, it's too irregular)
+    dim=nc.createDimension('TIME', timedim_dataframe['G2datetime'].__len__())
+    var=nc.createVariable('TIME','d','TIME')
+    var[:]=timedim_dataframe['G2datetime']
 
-        dim=nc.createDimension(dimension_dict['dim_name'][d],
-                           current_dataframe['G2datetime'].sort_values().unique().__len__())
+    dim=nc.createDimension('LONGITUDE', timedim_dataframe['G2datetime'].__len__())
+    var=nc.createVariable('TIME','d','TIME')
+    var[:]=timedim_dataframe['G2longitude']
+
+    dim=nc.createDimension('LATITUDE', timedim_dataframe['G2datetime'].__len__())
+    var=nc.createVariable('TIME','d','TIME')
+    var[:]=timedim_dataframe['G2latitude']
+
+    dim=nc.createDimension('DEPTH', current_dataframe['G2depthnominal'].sort().unique().__len__())
+    var=nc.createVariable('TIME','d','TIME')
+    var[:]=timedim_dataframe['G2depthnominal'].sort().unique()
+
+    dim=nc.createDimension('POSITION', timedim_dataframe['G2longitude'].__len__())
+
 
     time=nc.createVariable('TIME','d','TIME')
-    time[:]
+    time[:]=timedim_dataframe['G2datetime']
 
     for d in dimension_dict['dim_var_name'].values():
         dimension_attributes = CMEMSdict.dimension_attributes_dictionary(dimension_dict['dim_var_name'][d])
-
-        dim_variable=nc.createVariable(dimension_dict['dim_var_name'][d],
-                                       dimension_attributes[0]["datatype"],
-                                       dimension_attributes[0]["dimensions"])
-
-        if d.__contains__('depth'):
-            # Create a duplicate variable of depth; otherwise pivot_tables doesn't work
-            current_dataframe['dup_G2depthnominal'] = current_dataframe['G2depthnominal']
-            dim_variable[:]= pd.pivot_table(current_dataframe, index="G2datetime", columns="G2depthnominal",
-                                     values="dup_G2depthnominal", aggfunc="mean")
-        elif d.__contains__('time'):
-            dim_variable[:]=current_dataframe[d].sort_values().unique()
-        else:
-            d.__contains__('itude')
 
         for key, value in dimension_attributes[1].items():
             dim_variable.setncattr(key, value)
