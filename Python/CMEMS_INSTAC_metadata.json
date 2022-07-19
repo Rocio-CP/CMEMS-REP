@@ -62,7 +62,7 @@
           "units": "days since 1950-01-01T00:00:00Z",
           "valid_min": -90000.0,
           "valid_max": 90000.0,
-          "QC_indicator": "1",
+          "QC_indicator": 1,
           "uncertainty": "",
           "comment": "",
           "axis": "T",
@@ -81,7 +81,7 @@
           "units": "degree_north",
           "valid_min": -90.0,
           "valid_max": 90.0,
-          "QC_indicator": "1",
+          "QC_indicator": 1,
           "uncertainty": "",
           "comment": "",
           "axis": "Y",
@@ -99,7 +99,7 @@
           "units": "degree_east",
           "valid_min": -180.0,
           "valid_max": 180.0,
-          "QC_indicator": "1",
+          "QC_indicator": 1,
           "uncertainty": "",
           "comment": "",
           "axis": "X",
@@ -107,7 +107,7 @@
         }
       ],
       "DEPH": [
-        {
+        {"_FillValue": 9.969209968386869e+36,
           "datatype": "f",
           "dimensions": [
             "TIME",
