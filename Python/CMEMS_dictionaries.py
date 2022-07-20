@@ -1,6 +1,6 @@
-def common_dictionaries(data_source):
-    # Some parameters / unchanging values / dictionaries
-    socat_input_vars = ('', '', 'SST', 'sal', '', '', '', '', '', '', '', '', '', '', '', '', '', 'fCO2rec')
+def generate_variables_dictionary(output_files_dir):
+    socat_input_vars = ('', '', 'SST [deg.C]', 'sal', '', '', '', '', '', '', '', '', '', '', '', '', '', 'fCO2rec [uatm]')
+    socat_input_flag_vars = ('', '', 'SST_flag', 'sal_flag', '', '', '', '', '', '', '', '', '', '', '', '', '', 'fCO2rec_flag')
 
     glodap_input_vars = ('G2bottomdepth', 'G2pressure', 'G2temperature', 'G2salinity', 'G2oxygen', 'G2nitrate',
                          'G2nitrite', 'G2phosphate', 'G2silicate', 'G2phtsinsitutp', 'G2phts25p0', 'G2tco2',
@@ -33,14 +33,15 @@ def common_dictionaries(data_source):
                         'mass_concentration_of_chlorophyll_a_in_sea_water', 'fugacity_of_carbon_dioxide_in_sea_water')
     #valid_min =()
     #valid_max=()
-    if 'SOCAT' in data_source:
+    if 'socat-obs' in output_files_dir:
         variables_dict = {}
+        variables_dict['flag'] = dict(zip(socat_input_vars, socat_input_flag_vars))
         variables_dict['SDN'] = dict(zip(socat_input_vars, SDN_var_names))
         variables_dict['unit'] = dict(zip(socat_input_vars, units))
         variables_dict['long'] = dict(zip(socat_input_vars, long_name))
         variables_dict['CF'] = dict(zip(socat_input_vars, CF_standard_name))
 
-    elif 'GLODAP' in data_source:
+    elif 'glodap-obs' in output_files_dir:
         variables_dict = {}
         variables_dict['flag'] = dict(zip(glodap_input_vars, glodap_input_flag_vars))
         variables_dict['SDN'] = dict(zip(glodap_input_vars, SDN_var_names))
@@ -57,92 +58,12 @@ def common_dictionaries(data_source):
 
     return variables_dict
 
-def create_dimensions(timeval, lat, lon, depth, nc):
-    import numpy as np
 
-    # Import ATTRIBUTES
-    import json
-    with open("CMEMS_INSTAC_metadata.json", "r") as template:
-        all_attributes = json.load(template)
-    template.close()
-    dimension_attributes = all_attributes['dimatt'][0]
-    QC_attributes = all_attributes['QC_varatt']
-
-    # DIMENSIONS
-    nc.createDimension('TIME', timeval.__len__())
-    nc.createDimension('LONGITUDE', lon.__len__())
-    nc.createDimension('LATITUDE', lat.__len__())
-    nc.createDimension('POSITION', lon.__len__())
-    nc.createDimension('DEPTH', depth.shape[1])
-
-    # Dimension VARIABLES
-    # Create dictionary (in Matlab it would be a structure)
-    dimensionvar_dict = dict()
-    dimensionvar_dict['TIME'] = timeval
-    dimensionvar_dict['LONGITUDE'] = lon
-    dimensionvar_dict['LATITUDE'] = lat
-    dimensionvar_dict['DEPH'] = depth
-
-    for variable_name in dimension_attributes.keys():
-        if variable_name == 'DEPH':
-            var = nc.createVariable(variable_name,
-                                dimension_attributes[variable_name][0]["datatype"],
-                                dimension_attributes[variable_name][0]["dimensions"],
-                                fill_value=dimension_attributes[variable_name][0]["_FillValue"]    )
-        else:
-            var = nc.createVariable(variable_name,
-                                dimension_attributes[variable_name][0]["datatype"],
-                                dimension_attributes[variable_name][0]["dimensions"])
-
-        var[:] = dimensionvar_dict[variable_name]
-
-        for key, value in dimension_attributes[variable_name][1].items():
-            var.setncattr(key, value)
-
-    # Dimension FLAG variables. Assuming DEPH is nominal, and TIME/POSITION are good
-    # Create dictionary (in Matlab it would be a structure)
-    dimensionQC_dict = dict()
-    dimensionQC_dict['TIME_QC'] = dict()
-    dimensionQC_dict['POSITION_QC'] = dict()
-    dimensionQC_dict['DEPH_QC'] = dict()
-
-    dimensionQC_dict['TIME_QC'][ "values"] = np.ones(nc.dimensions['TIME'].size)
-    dimensionQC_dict['TIME_QC']["dimensions"] = 'TIME'
-    dimensionQC_dict['TIME_QC']["long_name"] = "Time quality flag"
-
-    dimensionQC_dict['POSITION_QC']["values"] = np.ones(nc.dimensions['LONGITUDE'].size)
-    dimensionQC_dict['POSITION_QC']["dimensions"] = 'POSITION'
-    dimensionQC_dict['POSITION_QC']["long_name"] = "Position quality flag"
-
-    dimensionQC_dict['DEPH_QC']["values"] = np.repeat(np.reshape(np.ones(nc.dimensions['DEPTH'].size) * 7, (1, -1)),
-                                             nc.dimensions['TIME'].size, axis=0)  # Make matrix!!
-    dimensionQC_dict['DEPH_QC']["dimensions"]=['TIME', 'DEPTH']
-    dimensionQC_dict['DEPH_QC']["long_name"] = "Depth quality flag"
-
-    for dimQC_name in dimensionQC_dict.keys():
-
-        dimQC_var = nc.createVariable(dimQC_name,
-                                      QC_attributes[0]["datatype"],
-                                      dimensionQC_dict[dimQC_name]["dimensions"],
-                                      fill_value=QC_attributes[0]["_FillValue"])
-
-        dimQC_var[:] = dimensionQC_dict[dimQC_name]["values"]
-
-        QC_attributes[1]["long_name"]=dimensionQC_dict[dimQC_name]["long_name"]
-        QC_attributes[1]["valid_min"] = np.int8(QC_attributes[1]["valid_min"])
-        QC_attributes[1]["valid_max"] = np.int8(QC_attributes[1]["valid_max"])
-
-        for key, value in QC_attributes[1].items():
-            dimQC_var.setncattr(key, value)
-
-
-    return nc
-
-def variable_attributes_dictionary(variable_name, data_source):
+def variable_attributes_dictionary(variable_name, output_files_dir, platform_type):
     import json
     import numpy as np
 
-    variables_dict = common_dictionaries(data_source)
+    variables_dict = generate_variables_dictionary(output_files_dir)
     with open("CMEMS_INSTAC_metadata.json", "r") as template:
         all_attributes = json.load(template)
     template.close()
@@ -154,6 +75,17 @@ def variable_attributes_dictionary(variable_name, data_source):
     variable_attributes[1]["units"] = variables_dict['unit'][variable_name]
     variable_attributes[1]["long_name"] = variables_dict['long'][variable_name]
     variable_attributes[1]["ancillary_variables"] = variables_dict['SDN'][variable_name] + "_QC"
+
+    if 'glodap-obs' in output_files_dir:
+        variable_attributes[1]["sensor_mount"] = "mounted_on_shipborne_profiler"
+    elif 'socat-obs' in output_files_dir:
+        if platform_type in ['31','32','37']:
+            variable_attributes[1]["sensor_mount"] = "mounted_on_shipborne_fixed"
+        elif platform_type in ['3B','42']:
+            variable_attributes[1]["sensor_mount"] = "mounted_on_glider"
+        elif platform_type in ['41']:
+            variable_attributes[1]["sensor_mount"] = "mounted_on_surface_buoy"
+
     #variable_attributes[1]["valid_min"] = np.int32(variable_attributes[1]["valid_min"])
     #variable_attributes[1]["valid_max"] = np.int32(variable_attributes[1]["valid_max"])
 
@@ -164,7 +96,7 @@ def variable_attributes_dictionary(variable_name, data_source):
     return variable_attributes, QC_attributes
 
 
-def global_attributes_dictionary(current_expocodes_info, current_dataframe):
+def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_filename):
     import datetime
     import json
     import numpy as np
@@ -175,9 +107,13 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe):
 
     all_attributes['globalatt'][0]['platform_code'] = current_expocodes_info[
         'PlatformCode'].unique().item()  # only alphanumeric characters
-    all_attributes['globalatt'][0]['platform_name'] = current_expocodes_info['Name'].unique().item()
-    all_attributes['globalatt'][0]['id'] = 'GL_PR_BO_' + all_attributes['globalatt'][0][
-        'platform_code'] + '-GLODAPv22022.nc'
+    if current_expocodes_info['Name'].unique().__len__() > 1:
+        all_attributes['globalatt'][0]['platform_name'] = ";".join(current_expocodes_info['Name'].unique())
+    else:
+        all_attributes['globalatt'][0]['platform_name'] = current_expocodes_info['Name'].unique().item()
+
+    all_attributes['globalatt'][0]['id']= nc_filename[0:-3]
+
     all_attributes['globalatt'][0]['wmo_platform_code'] = current_expocodes_info['CallSign_WMO'].unique().item()
     all_attributes['globalatt'][0]['ices_platform_code'] = current_expocodes_info['ICEScode'].unique().item()
 
@@ -200,13 +136,6 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe):
     elif all_attributes['globalatt'][0]['source_platform_category_code'] == '62':
         all_attributes['globalatt'][0]['source'] = 'aeroplane'
 
-    institution_name = current_expocodes_info['Institution'].unique()
-    pi_institution_name = current_expocodes_info['PI_Institution'].unique()
-    edmo = current_expocodes_info['EDMO'].unique()
-    pi_edmo = current_expocodes_info['PI_EDMO'].unique()
-    all_attributes['globalatt'][0]['institution'] = ";".join(np.unique([*institution_name, *pi_institution_name]))
-    all_attributes['globalatt'][0]['institution_edmo_code'] = ",".join(np.unique([*edmo, *pi_edmo]))
-
     # Geospatial and time limits
     all_attributes['globalatt'][0]['geospatial_lat_min'] = current_dataframe['LATITUDE'].min()
     all_attributes['globalatt'][0]['geospatial_lat_max'] = current_dataframe['LATITUDE'].max()
@@ -217,16 +146,48 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe):
     all_attributes['globalatt'][0]['time_coverage_start'] =date19502string(current_dataframe['TIME'].iloc[0])
     all_attributes['globalatt'][0]['time_coverage_end'] =date19502string(current_dataframe['TIME'].iloc[-1])
 
-    # PI attributes
-    pi = current_expocodes_info['PI'].unique()
-    all_attributes['globalatt'][0]['pi_name'] = ";".join(pi)
-
-    all_attributes['globalatt'][0]['date_update'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-    all_attributes['globalatt'][0]['history'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ") + ": Creation"
-
     all_attributes['globalatt'][0]['last_date_observation'] = date19502string(current_dataframe['TIME'].iloc[-1])
     all_attributes['globalatt'][0]['last_latitude_observation'] = current_dataframe['LATITUDE'].iloc[-1]
     all_attributes['globalatt'][0]['last_longitude_observation'] = current_dataframe['LONGITUDE'].iloc[-1]
+
+    # institution and PI attributes
+    pi = current_expocodes_info['PI'].unique()
+    all_attributes['globalatt'][0]['pi_name'] = ";".join(pi)
+    institution_name = current_expocodes_info['Institution'].unique()
+    pi_institution_name = current_expocodes_info['PI_Institution'].unique()
+    edmo = current_expocodes_info['EDMO'].unique()
+    pi_edmo = current_expocodes_info['PI_EDMO'].unique()
+    all_attributes['globalatt'][0]['institution'] = ";".join(np.unique([*institution_name, *pi_institution_name]))
+    all_attributes['globalatt'][0]['institution_edmo_code'] = ",".join(np.unique([*edmo, *pi_edmo]))
+
+    # History attributes
+    all_attributes['globalatt'][0]['date_update'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    all_attributes['globalatt'][0]['history'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ") + ": Creation"
+
+    # Data product-specific attributes
+    if 'socat'.casefold() in nc_filename.casefold():
+        all_attributes['globalatt'][0]["title"] = all_attributes['globalatt'][0]["title"] + " - SOCATv2022"
+        all_attributes['globalatt'][0]["references"] = all_attributes['globalatt'][0]["references"] + " https://socat.info"
+        all_attributes['globalatt'][0]["citation"] = all_attributes['globalatt'][0]["citation"] + "  SOCAT is described in Bakker et al. (2016) https://doi.org/10.5194/essd-8-383-2016; traceable citations are essential for justifying and sustaining the effort."
+        all_attributes['globalatt'][0]["doi"] = "https://doi.org/10.25921/1h9f-nb73"
+
+        if all_attributes['globalatt'][0]['source_platform_category_code'] in ['31','32','37','3B','42']:
+            all_attributes['globalatt'][0]["cdm_data_type"] = "trajectory"
+            all_attributes['globalatt'][0]["data_type"] = "OceanSITES trajectory data"
+
+        elif all_attributes['globalatt'][0]['source_platform_category_code'] in ['41']:
+            all_attributes['globalatt'][0]["cdm_data_type"] = "timeSeries"
+            all_attributes['globalatt'][0]["data_type"] = "OceanSITES time-series data"
+
+    elif 'glodap'.casefold() in nc_filename.casefold():
+        all_attributes['globalatt'][0]["title"] = all_attributes['globalatt'][0]["title"] + " - GLODAPv2.2022"
+        all_attributes['globalatt'][0]["references"] = all_attributes['globalatt'][0]["references"] + " https://glodap.info"
+        all_attributes['globalatt'][0]["citation"] = all_attributes['globalatt'][0]["citation"] + "  GLODAPv2.2022 is described in ---- (2022) DOI MISSING; traceable citations are essential for justifying and sustaining the effort."
+        all_attributes['globalatt'][0]["doi"] = "TBU"
+
+        all_attributes['globalatt'][0]["cdm_data_type"] = "profile"
+        all_attributes['globalatt'][0]["data_type"] = "OceanSITES vertical profile"
+
 
     return all_attributes['globalatt'][0]
 
