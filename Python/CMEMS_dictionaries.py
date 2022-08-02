@@ -105,17 +105,29 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
         all_attributes = json.load(template)
     template.close()
 
-    all_attributes['globalatt'][0]['platform_code'] = current_expocodes_info[
-        'PlatformCode'].unique().item()  # only alphanumeric characters
-    if current_expocodes_info['Name'].unique().__len__() > 1:
-        all_attributes['globalatt'][0]['platform_name'] = ";".join(current_expocodes_info['Name'].unique())
-    else:
-        all_attributes['globalatt'][0]['platform_name'] = current_expocodes_info['Name'].unique().item()
+    # Creating global attributes from multiple values (e.g. multiple names, ICES codes, etc...)
+    globattribute_infodf_dict={'platform_code':'PlatformCode',
+                               'platform_name':'Name',
+                               'ices_platform_code': 'ICEScode'}
+    for att in globattribute_infodf_dict.keys():
+        print(att, globattribute_infodf_dict[att], current_expocodes_info[[globattribute_infodf_dict[att]]])
+        if current_expocodes_info[globattribute_infodf_dict[att]].unique().__len__() > 1:
+            all_attributes['globalatt'][0][att] = ";".join(current_expocodes_info[globattribute_infodf_dict[att]].unique())
+        else:
+            all_attributes['globalatt'][0][att] = current_expocodes_info[globattribute_infodf_dict[att]].unique().item()
+        print(all_attributes['globalatt'][0][att])
+
+    #all_attributes['globalatt'][0]['platform_code'] = current_expocodes_info[
+    #    'PlatformCode'].unique().item()  # only alphanumeric characters
+    #if current_expocodes_info['Name'].unique().__len__() > 1:
+    #    all_attributes['globalatt'][0]['platform_name'] = ";".join(current_expocodes_info['Name'].unique())
+    #else:
+    #    all_attributes['globalatt'][0]['platform_name'] = current_expocodes_info['Name'].unique().item()
 
     all_attributes['globalatt'][0]['id']= nc_filename[0:-3]
 
     all_attributes['globalatt'][0]['wmo_platform_code'] = current_expocodes_info['CallSign_WMO'].unique().item()
-    all_attributes['globalatt'][0]['ices_platform_code'] = current_expocodes_info['ICEScode'].unique().item()
+    #all_attributes['globalatt'][0]['ices_platform_code'] = current_expocodes_info['ICEScode'].unique()
 
     all_attributes['globalatt'][0]['source_platform_category_code'] = str(
         current_expocodes_info['PlatformType'].unique().item())

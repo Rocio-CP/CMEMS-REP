@@ -7,6 +7,7 @@ def build_nc(dataframe, infoframe, output_files_dir):
 
     unique_platform_codes = infoframe['PlatformCode'].unique()
 
+    z_counter=0
     for pc in unique_platform_codes:
         # Create boolean filters for
         filter_expocodes = infoframe['PlatformCode'] == pc
@@ -120,7 +121,11 @@ def build_nc(dataframe, infoframe, output_files_dir):
         nc.close()
         print(nc_filename + ' ' +
               round(os.path.getsize(nc_filepathname)/(1024*1024),2).__str__() +' MB')
-        break
+
+        z_counter=z_counter+1
+        print(pc)
+        if z_counter > 5:
+            break
 
 
 def create_dimensions(timeval, lat, lon, depth, nc):

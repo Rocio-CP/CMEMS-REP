@@ -1,15 +1,15 @@
 def read_SOCAT_obs(input_files_dir, output_files_dir, SOCAT_files, SOCAT_info_file):
-
     import os
     import pandas as pd
     import time
     import numpy as np
     import Python.CMEMS_dictionaries as CMEMSdict
 
-
     # Read SOCAT files, skipping the header information lines
     SOCATcolheadertextshort = 'Expocode\tversion\tSource_DOI\tQC_Flag'
     SOCATmetacolheadertextshort = 'Expocode\tversion\tDataset'
+
+    tempdf = pd.DataFrame()
 
     for file in SOCAT_files:
         filepath = os.path.join(input_files_dir, file)
@@ -45,14 +45,11 @@ def read_SOCAT_obs(input_files_dir, output_files_dir, SOCAT_files, SOCAT_info_fi
         tempdf1.loc[tempdf1['longitude [dec.deg.E]'] > 180, 'longitude [dec.deg.E]'] = \
             tempdf1['longitude [dec.deg.E]'] - 360
 
-        # Merge synthesis and FlagE dataframes in one
-        if 'tempdf' not in globals():
-            tempdf = tempdf1
-        else:
-            tempdf = pd.concat([tempdf, tempdf1])
+        # Merge synthesis and FlagE dataframes in one. Use an empty dataframe as starter
+        tempdf = pd.concat([tempdf, tempdf1])
 
     # Reset indices(?)
-    #tempdf.reset_index(drop=True, inplace=True)
+    # tempdf.reset_index(drop=True, inplace=True)
     print('SOCAT frame size is ')
     print(tempdf.shape)
 
