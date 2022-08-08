@@ -25,14 +25,14 @@ def read_SOCAT_obs(input_files_dir, output_files_dir, SOCAT_files, SOCAT_info_fi
         f.close()
 
         # Read SOCAT data in a dataframe
-        print(file + " file has " + str(headerlines) + " header lines")
+        #print(file + " file has " + str(headerlines) + " header lines")
         start_time = time.time()  # Time the script
         ddtype = {0: str, 2: str}  # add type str to columns 0 and 2
         # Read the SOCAT file into a pandas dataframe
         tempdf1 = pd.read_csv(filepath, sep=separator, skiprows=headerlines,
                               na_values='NaN', on_bad_lines='skip', dtype=ddtype)
-        print("--- %s seconds ---" % (time.time() - start_time))
-        print(file + " data frame has " + str(len(tempdf1)) + " lines")
+        #print("--- %s seconds ---" % (time.time() - start_time))
+        #print(file + " data frame has " + str(len(tempdf1)) + " lines")
 
         # Create days-from-1950 numeric datetime
         tempdtframe = pd.to_datetime({'year': tempdf1['yr'], 'month': tempdf1['mon'],
@@ -50,8 +50,8 @@ def read_SOCAT_obs(input_files_dir, output_files_dir, SOCAT_files, SOCAT_info_fi
 
     # Reset indices(?)
     # tempdf.reset_index(drop=True, inplace=True)
-    print('SOCAT frame size is ')
-    print(tempdf.shape)
+    #print('SOCAT frame size is ')
+    #print(tempdf.shape)
 
     # Create days-from-1950 numeric datetime
     tempdtframe = pd.to_datetime({'year': tempdf['yr'], 'month': tempdf['mon'],

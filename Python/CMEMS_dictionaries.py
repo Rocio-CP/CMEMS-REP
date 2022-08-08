@@ -110,12 +110,14 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
                                'platform_name':'Name',
                                'ices_platform_code': 'ICEScode'}
     for att in globattribute_infodf_dict.keys():
-        print(att, globattribute_infodf_dict[att], current_expocodes_info[[globattribute_infodf_dict[att]]])
         if current_expocodes_info[globattribute_infodf_dict[att]].unique().__len__() > 1:
-            all_attributes['globalatt'][0][att] = ";".join(current_expocodes_info[globattribute_infodf_dict[att]].unique())
+            if att=='Name':
+                all_attributes['globalatt'][0][att] = ";".join(current_expocodes_info[globattribute_infodf_dict[att]].unique())
+            else:
+                all_attributes['globalatt'][0][att] = " ".join(current_expocodes_info[globattribute_infodf_dict[att]].unique())
+
         else:
             all_attributes['globalatt'][0][att] = current_expocodes_info[globattribute_infodf_dict[att]].unique().item()
-        print(all_attributes['globalatt'][0][att])
 
     #all_attributes['globalatt'][0]['platform_code'] = current_expocodes_info[
     #    'PlatformCode'].unique().item()  # only alphanumeric characters
@@ -170,7 +172,7 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
     edmo = current_expocodes_info['EDMO'].unique()
     pi_edmo = current_expocodes_info['PI_EDMO'].unique()
     all_attributes['globalatt'][0]['institution'] = ";".join(np.unique([*institution_name, *pi_institution_name]))
-    all_attributes['globalatt'][0]['institution_edmo_code'] = ",".join(np.unique([*edmo, *pi_edmo]))
+    all_attributes['globalatt'][0]['institution_edmo_code'] = " ".join(np.unique([*edmo, *pi_edmo]))
 
     # History attributes
     all_attributes['globalatt'][0]['date_update'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")

@@ -7,14 +7,6 @@ def read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info
     import Python.CMEMS_dictionaries as CMEMSdict
 
     # Check if input data files are there; if not, fetch data from the internet
-    # if not all([os.path.isfile(os.path.join(input_files_dir, f)) for f in GLODAP_files]):
-    #    input_files_dir = files_path_remote
-
-    sourcefile = [i for i in GLODAP_files if 'GLODAP' in i][0]
-    # doifile = [i for i in GLODAP_files if 'DOI' in i][0]
-    expocodefile = [i for i in GLODAP_files if 'EXPOCODES' in i][0]
-
-    variables_dict = CMEMSdict.generate_variables_dictionary(output_files_dir)
 
     ### Read GLODAP data file(s)
     # # It may not be necessary to specify the datatype for reading: it'll transform when writing the netCDF file
@@ -31,10 +23,47 @@ def read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info
     # # dtype for GLODAP data
     # data_dtype_dict = dict(zip(all_glodap_input_variables, all_glodap_input_variables_dtype))
 
-    # Read GLODAP file (parse_dates does not work because some hours and minutes are nan)
-    tempdf = pd.read_csv(os.path.join(input_files_dir, sourcefile), sep=',',
-                         skiprows=0, na_values='-9999',  # dtype=data_dtype_dict,
-                         on_bad_lines='skip')
+    if any(['DOI' in i for i in GLODAP_files]):
+        sourcefile = [i for i in GLODAP_files if 'GLODAP' in i][0]
+        doifile = [i for i in GLODAP_files if 'DOI' in i][0]
+        expocodefile = [i for i in GLODAP_files if 'EXPOCODES' in i][0]
+
+        # Read GLODAP file (parse_dates does not work because some hours and minutes are nan)
+        tempdf = pd.read_csv(os.path.join(input_files_dir, sourcefile), sep=',',
+                             skiprows=0, na_values='-9999',  # dtype=data_dtype_dict,
+                             on_bad_lines='skip')
+
+        # Read extra info files
+        dois = pd.read_csv(os.path.join(input_files_dir, doifile), sep='\t', header=None,
+                          names=['G2cruise', 'doi'], dtype={'G2cruise':'int','doi':'str'}, on_bad_lines='skip',
+                          encoding='utf_16_le')
+        doisdict = dois.set_index('G2cruise')['doi'].to_dict()
+
+        expocodes = pd.read_csv(os.path.join(input_files_dir, expocodefile), sep='\t',
+                                    header=None, names=['G2cruise', 'expocode'],
+                                    dtype={'G2cruise': 'int', 'expocode': 'str'},
+                                    on_bad_lines='skip')
+
+            ### Assign Expocodes and DOIs to data frame
+            # Transform expocode dataframes into dictionaries (easier to lookup)
+        expocodesdict = expocodes.set_index('G2cruise')['expocode'].to_dict()
+
+        for cruise in tempdf['G2cruise'].unique():
+                tempdf.loc[tempdf.G2cruise == cruise,
+                           'EXPOCODE'] = expocodesdict[cruise]
+                tempdf.loc[tempdf.G2cruise == cruise,
+                    'G2doi'] = doisdict[cruise]
+
+
+    else:
+        sourcefile=GLODAP_files[0]
+        # Read GLODAP file (parse_dates does not work because some hours and minutes are nan)
+        tempdf = pd.read_csv(os.path.join(input_files_dir, sourcefile), sep=',',
+                             skiprows=0, na_values='-9999',  # dtype=data_dtype_dict,
+                             on_bad_lines='skip')
+        tempdf['EXPOCODE'] = tempdf['G2expocode'].copy()
+
+    variables_dict = CMEMSdict.generate_variables_dictionary(output_files_dir)
 
     # Create datetime from 1950 series
     # Change NaN hour/minute to 0. Calculate 1950-time
@@ -86,28 +115,6 @@ def read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info
     # Rename G2fco2 to G2fco2_20_0 (in GLODAP, it's given at 20 dg, 0dbar).
     # tempdf.rename(columns={'G2fco2': 'G2fco2_20_0'}, inplace=True)
 
-    # Read extra info files
-    # dois = pd.read_csv(os.path.join(input_files_dir, doifile), sep='\t', header=None,
-    #                   names=['G2cruise', 'doi'], dtype={'G2cruise':'int','doi':'str'}, on_bad_lines='skip',
-    #                   encoding='utf_16_le')
-    # doisdict = dois.set_index('G2cruise')['doi'].to_dict()
-
-    # Expocodes. In older versions Expocode and data info were in separate files
-    if 'G2expocode' in tempdf.columns:
-        tempdf['EXPOCODE']=tempdf['G2expocode'].copy()
-    else:
-        expocodes = pd.read_csv(os.path.join(input_files_dir, expocodefile), sep='\t',
-                                header=None, names=['G2cruise', 'expocode'], dtype={'G2cruise': 'int', 'expocode': 'str'},
-                                on_bad_lines='skip')
-
-        ### Assign Expocodes and DOIs to data frame
-        # Transform expocode dataframes into dictionaries (easier to lookup)
-        expocodesdict = expocodes.set_index('G2cruise')['expocode'].to_dict()
-
-        for cruise in tempdf['G2cruise'].unique():
-            tempdf.loc[tempdf.G2cruise == cruise,
-                       'EXPOCODE'] = expocodesdict[cruise]
-
     ### Read GLODAP info: platform names, codes, EDMO, PI...
     # # Dtype for GLODAP info
     glodap_info_dtype = ['int', *['str'] * 12]
@@ -131,4 +138,5 @@ def read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info
 
     # Call the netCDF builder
     import CMEMS_build_nc as cmems_build
+    print(tempdf.columns)
     cmems_build.build_nc(tempdf,GLODAP_info,output_files_dir)

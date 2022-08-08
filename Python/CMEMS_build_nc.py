@@ -52,6 +52,7 @@ def build_nc(dataframe, infoframe, output_files_dir):
         nc_filepathname = output_files_dir + '/' + platform_type_folder + '/' + nc_filename
 
         # Create NetCDF file
+        # Remove previous version of the file, if it exists
         if os.path.isfile(nc_filepathname):
             os.remove(nc_filepathname)
 
@@ -123,7 +124,6 @@ def build_nc(dataframe, infoframe, output_files_dir):
               round(os.path.getsize(nc_filepathname)/(1024*1024),2).__str__() +' MB')
 
         z_counter=z_counter+1
-        print(pc)
         if z_counter > 5:
             break
 
