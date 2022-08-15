@@ -12,6 +12,11 @@ if [[ ${dataset} == *"DNT"*  ]]; then
 continue
 fi
 
+# If index file exists, remove
+if [ -f "${dataset}index_file.txt" ]; then
+    rm "${dataset}index_file.txt"
+fi
+
 # Header of index file
 echo "# Title : in-situ files catalog" > ${dataset}index_file.txt
 echo "# Description : catalog of available in-situ files" >> ${dataset}index_file.txt

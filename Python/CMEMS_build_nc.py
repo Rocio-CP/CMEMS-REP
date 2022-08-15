@@ -47,7 +47,7 @@ def build_nc(dataframe, infoframe, output_files_dir):
                 platform_type_folder = 'MO'
             elif platform_type in ['42']:
                 platform_type_folder = 'DB'
-            nc_filename = 'GL_PR_' + platform_type_folder + '_' + pc + '-SOCATv2022.nc'
+            nc_filename = 'GL_TS_' + platform_type_folder + '_' + pc + '-SOCATv2022.nc'
 
         nc_filepathname = output_files_dir + '/' + platform_type_folder + '/' + nc_filename
 
@@ -124,7 +124,7 @@ def build_nc(dataframe, infoframe, output_files_dir):
               round(os.path.getsize(nc_filepathname)/(1024*1024),2).__str__() +' MB')
 
         z_counter=z_counter+1
-        if z_counter > 5:
+        if (z_counter > 5):# and 'GLODAP' in nc_filename:
             break
 
 

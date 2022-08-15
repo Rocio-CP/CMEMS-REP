@@ -15,6 +15,12 @@ if [[ ${dataset} == *"gridded"*  ]]; then
 continue
 fi
 
+# If platform index file exists, remove
+if [ -f "${dataset}index_platform.txt" ]; then
+    rm "${dataset}index_platform.txt"
+fi
+
+
 # Header of index file
 echo "# Title : in-situ platforms catalog" > ${dataset}index_platform.txt
 echo "# Description : catalog of available in-situ platforms" >> ${dataset}index_platform.txt

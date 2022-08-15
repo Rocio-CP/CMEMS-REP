@@ -138,5 +138,4 @@ def read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info
 
     # Call the netCDF builder
     import CMEMS_build_nc as cmems_build
-    print(tempdf.columns)
     cmems_build.build_nc(tempdf,GLODAP_info,output_files_dir)

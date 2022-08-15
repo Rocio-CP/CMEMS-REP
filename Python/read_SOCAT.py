@@ -89,6 +89,8 @@ def read_SOCAT_obs(input_files_dir, output_files_dir, SOCAT_files, SOCAT_info_fi
     SOCAT_info.loc[SOCAT_info['PlatformCode'].isna(), 'PlatformCode'] = \
         SOCAT_info.loc[SOCAT_info['PlatformCode'].isna(), 'Name']
     SOCAT_info['PlatformCode'] = SOCAT_info['PlatformCode'].str.replace(' ', '')
+    SOCAT_info['PlatformCode'] = SOCAT_info['PlatformCode'].str.replace('-', '')
+    SOCAT_info['PlatformCode'] = SOCAT_info['PlatformCode'].str.replace('_', '')
 
     # Extract only variables that will go to CMEMS
     variables_dict = CMEMSdict.generate_variables_dictionary(output_files_dir)

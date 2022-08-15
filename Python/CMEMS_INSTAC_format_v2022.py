@@ -1,6 +1,7 @@
 import os
 import read_SOCAT
 import read_GLODAP
+import INSTAC_gridded_files
 
 # Stablish where the files are / should be
 input_files_dir = '/Users/rocio/Documents/templocal/CARBON_REP_202212/'
@@ -31,7 +32,18 @@ GLODAP_files = ['GLODAPv2.2022_Merged_Master_File.csv']
 GLODAP_info_file = 'GLODAPv22022CMEMS.tsv'
 output_files_dir = os.path.join(product_dir, 'cmems_obs-ins_glo_bgc-car_my_glodap-obs_irr/')
 
-read_GLODAP.read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info_file)
+#read_GLODAP.read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info_file)
+
+# Gridded files SOCAT
+listgriddedfiles=[os.path.join(input_files_dir,x) for x in os.listdir(input_files_dir) if 'gridded' in x]
+output_files_dir = os.path.join(product_dir,'cmems_obs-ins_glo_bgc-car_my_socat-gridded_irr/')
+#INSTAC_gridded_files.gridded_INSTAC(listgriddedfiles,output_files_dir)
+
+# Gridded files GLODAP
+filestoadd=['temperature','salinity','oxygen','NO3','PO4','silicate','pHtsinsitutp','pHts25p0','TCO2','Talk']
+listgriddedfiles=[os.path.join(input_files_dir,'GLODAPv2.2016b_MappedClimatologies/GLODAPv2.2016b.'+ x +'.nc') for x in filestoadd]
+output_files_dir = os.path.join(product_dir, 'cmems_obs-ins_glo_bgc-car_my_glodap-gridded_irr/')
+#INSTAC_gridded_files.gridded_INSTAC(listgriddedfiles,output_files_dir)
 
 ### Run tests, check if all ok
 # Is this way bad? Probably. Will fix it? Eventually
@@ -48,11 +60,19 @@ content_checker_path='/Users/rocio/Documents/GitHub/CMEMS-REP/file-content-check
 
 for source in ['socat','glodap']:
     # Format checker
+    if os.path.isfile(input_files_dir +"format_check_" + source):
+        os.remove(input_files_dir +"format_check_" + source)
+
+    # Observations
     os.system("cd "+ format_checker_path + "; "
               "for f in " + product_dir + "cmems_obs-ins_glo_bgc-car_my_" + source + "-obs_irr/*/*.nc; "
               "do ./control.csh $f"
               " >> " + input_files_dir +"format_check_" + source + "; done")
-
+    # Gridded (no content check for gridded)
+    os.system("cd "+ format_checker_path + "; "
+              "for f in " + product_dir + "cmems_obs-ins_glo_bgc-car_my_" + source + "-gridded_irr/*.nc; "
+              "do ./control.csh $f"
+              " >> " + input_files_dir +"format_check_" + source + "; done")
     # Cleanup the file: it's a bunch of individual xml printed together.
     f = open(input_files_dir +"format_check_" + source, "r")
     lines = f.readlines()
@@ -68,6 +88,9 @@ for source in ['socat','glodap']:
     f.close()
 
     # Content checker
+    if os.path.isfile(input_files_dir +"content_check_" + source):
+        os.remove(input_files_dir +"content_check_" + source)
+
     os.system("python3 " + content_checker_path + "Copernicus_InSituTAC_content_checker.py " +
               content_checker_path + "Copernicus_InSituTAC_content_checker.json " +
               product_dir + "cmems_obs-ins_glo_bgc-car_my_" + source + "-obs_irr/*"

@@ -100,36 +100,43 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
     import datetime
     import json
     import numpy as np
+    import pandas as pd
 
     with open("CMEMS_INSTAC_metadata.json", "r") as template:
         all_attributes = json.load(template)
     template.close()
 
-    # Creating global attributes from multiple values (e.g. multiple names, ICES codes, etc...)
+# Add eventually: a check of the mandatory value and optional value global attributes
+    mandatory_value_att=['platform_code', 'data_mode','title','naming_authority','id','source', 'source_platform_category_code','institution','contact',
+                   'geospatial_lat_min','geospatial_lat_max','geospatial_lon_min','geospatial_lon_max','geospatial_vertical_min','geospatial_vertical_max',
+                   'time_coverage_start','time_coverage_end','cdm_data_type','data_type',
+                   'format_version', 'Conventions', 'netcdf_version', 'references', 'data_assembly_center', 'update_interval','citation', 'distribution_statement'
+                   'date_update', 'last_date_observation','last_latitude_observation','last_longitude_observation']
+    optional_value_att=['platform_name', 'summary','wmo_platform_code','ices_platform_code','institution_edmo_code','institution_references','site_code','comment',
+                        'area','bottom_depth','doi','pi_name','qc_manual','history','wmo_inst_type']
+    additional_att=[]
+
+    # Platform attributes
+    # Some global attributes may have multiple values (e.g. multiple names, ICES codes, etc...)
+    # Platform codes ARE UNIQUE
+    # Platform names ALWAYS EXIST
+    # ICES codes may not exist
     globattribute_infodf_dict={'platform_code':'PlatformCode',
                                'platform_name':'Name',
                                'ices_platform_code': 'ICEScode'}
-    for att in globattribute_infodf_dict.keys():
-        if current_expocodes_info[globattribute_infodf_dict[att]].unique().__len__() > 1:
-            if att=='Name':
-                all_attributes['globalatt'][0][att] = ";".join(current_expocodes_info[globattribute_infodf_dict[att]].unique())
-            else:
-                all_attributes['globalatt'][0][att] = " ".join(current_expocodes_info[globattribute_infodf_dict[att]].unique())
 
-        else:
-            all_attributes['globalatt'][0][att] = current_expocodes_info[globattribute_infodf_dict[att]].unique().item()
-
-    #all_attributes['globalatt'][0]['platform_code'] = current_expocodes_info[
-    #    'PlatformCode'].unique().item()  # only alphanumeric characters
     #if current_expocodes_info['Name'].unique().__len__() > 1:
-    #    all_attributes['globalatt'][0]['platform_name'] = ";".join(current_expocodes_info['Name'].unique())
-    #else:
-    #    all_attributes['globalatt'][0]['platform_name'] = current_expocodes_info['Name'].unique().item()
+    all_attributes['globalatt'][0]['platform_name'] = ";".join(
+                current_expocodes_info['Name'].unique())
+    if any(pd.isnull(current_expocodes_info['ICEScode'].unique())):
+        all_attributes['globalatt'][0]['ices_platform_code'] = ""
+    else:
+        all_attributes['globalatt'][0]['ices_platform_code'] = " ".join(
+                current_expocodes_info['ICEScode'].unique())
 
-    all_attributes['globalatt'][0]['id']= nc_filename[0:-3]
-
+    all_attributes['globalatt'][0]['platform_code'] = current_expocodes_info['PlatformCode'].unique().item()
     all_attributes['globalatt'][0]['wmo_platform_code'] = current_expocodes_info['CallSign_WMO'].unique().item()
-    #all_attributes['globalatt'][0]['ices_platform_code'] = current_expocodes_info['ICEScode'].unique()
+    all_attributes['globalatt'][0]['id']= nc_filename[0:-3]
 
     all_attributes['globalatt'][0]['source_platform_category_code'] = str(
         current_expocodes_info['PlatformType'].unique().item())
@@ -165,14 +172,22 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
     all_attributes['globalatt'][0]['last_longitude_observation'] = current_dataframe['LONGITUDE'].iloc[-1]
 
     # institution and PI attributes
-    pi = current_expocodes_info['PI'].unique()
-    all_attributes['globalatt'][0]['pi_name'] = ";".join(pi)
+    # There may be multiple PIs associated with single expocodes that would appear repeated if plain unique() was used
+    # join and then re-split by ';'
+    allpis=';'.join(current_expocodes_info['PI'].unique()).split(';')
+    # remove trailing/leading whitespaces and run unique on them
+    pis=np.unique([dum.strip() for dum in allpis])
+    all_attributes['globalatt'][0]['pi_name'] = ";".join(pis)
+
     institution_name = current_expocodes_info['Institution'].unique()
     pi_institution_name = current_expocodes_info['PI_Institution'].unique()
     edmo = current_expocodes_info['EDMO'].unique()
     pi_edmo = current_expocodes_info['PI_EDMO'].unique()
     all_attributes['globalatt'][0]['institution'] = ";".join(np.unique([*institution_name, *pi_institution_name]))
-    all_attributes['globalatt'][0]['institution_edmo_code'] = " ".join(np.unique([*edmo, *pi_edmo]))
+    if any(pd.isnull(np.unique([*edmo, *pi_edmo]))):
+        all_attributes['globalatt'][0]['institution_edmo_code'] = ""
+    else:
+        all_attributes['globalatt'][0]['institution_edmo_code'] = " ".join(np.unique([*edmo, *pi_edmo]))
 
     # History attributes
     all_attributes['globalatt'][0]['date_update'] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -196,11 +211,13 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
     elif 'glodap'.casefold() in nc_filename.casefold():
         all_attributes['globalatt'][0]["title"] = all_attributes['globalatt'][0]["title"] + " - GLODAPv2.2022"
         all_attributes['globalatt'][0]["references"] = all_attributes['globalatt'][0]["references"] + " https://glodap.info"
-        all_attributes['globalatt'][0]["citation"] = all_attributes['globalatt'][0]["citation"] + "  GLODAPv2.2022 is described in ---- (2022) DOI MISSING; traceable citations are essential for justifying and sustaining the effort."
-        all_attributes['globalatt'][0]["doi"] = "TBU"
+        all_attributes['globalatt'][0]["citation"] = all_attributes['globalatt'][0]["citation"] + "  GLODAPv2.2022 is described in Lauvset et al. (2022) DOI MISSING; traceable citations are essential for justifying and sustaining the effort."
+        all_attributes['globalatt'][0]["doi"] = "https://doi.org/10.25921/1f4w-0t92"
 
         all_attributes['globalatt'][0]["cdm_data_type"] = "profile"
         all_attributes['globalatt'][0]["data_type"] = "OceanSITES vertical profile"
+
+    # Remove NaN attributes; substitute with empty string
 
 
     return all_attributes['globalatt'][0]
