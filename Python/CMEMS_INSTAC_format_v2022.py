@@ -24,7 +24,7 @@ SOCAT_files = ['SOCATv2022.tsv','SOCATv2022_FlagE.tsv']
 SOCAT_info_file='SOCATv2022CMEMS.tsv'
 output_files_dir = os.path.join(product_dir, 'cmems_obs-ins_glo_bgc-car_my_socat-obs_irr/')
 
-#read_SOCAT.read_SOCAT_obs(input_files_dir, output_files_dir, SOCAT_files, SOCAT_info_file)
+read_SOCAT.read_SOCAT_obs(input_files_dir, output_files_dir, SOCAT_files, SOCAT_info_file)
 
 # Create GLODAP files
 GLODAP_files = ['GLODAPv2.2022_Merged_Master_File.csv']
@@ -32,18 +32,18 @@ GLODAP_files = ['GLODAPv2.2022_Merged_Master_File.csv']
 GLODAP_info_file = 'GLODAPv22022CMEMS.tsv'
 output_files_dir = os.path.join(product_dir, 'cmems_obs-ins_glo_bgc-car_my_glodap-obs_irr/')
 
-#read_GLODAP.read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info_file)
+read_GLODAP.read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info_file)
 
 # Gridded files SOCAT
 listgriddedfiles=[os.path.join(input_files_dir,x) for x in os.listdir(input_files_dir) if 'gridded' in x]
 output_files_dir = os.path.join(product_dir,'cmems_obs-ins_glo_bgc-car_my_socat-gridded_irr/')
-#INSTAC_gridded_files.gridded_INSTAC(listgriddedfiles,output_files_dir)
+INSTAC_gridded_files.gridded_INSTAC(listgriddedfiles,output_files_dir)
 
 # Gridded files GLODAP
 filestoadd=['temperature','salinity','oxygen','NO3','PO4','silicate','pHtsinsitutp','pHts25p0','TCO2','Talk']
 listgriddedfiles=[os.path.join(input_files_dir,'GLODAPv2.2016b_MappedClimatologies/GLODAPv2.2016b.'+ x +'.nc') for x in filestoadd]
 output_files_dir = os.path.join(product_dir, 'cmems_obs-ins_glo_bgc-car_my_glodap-gridded_irr/')
-#INSTAC_gridded_files.gridded_INSTAC(listgriddedfiles,output_files_dir)
+INSTAC_gridded_files.gridded_INSTAC(listgriddedfiles,output_files_dir)
 
 ### Run tests, check if all ok
 # Is this way bad? Probably. Will fix it? Eventually

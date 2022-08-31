@@ -120,6 +120,18 @@ def build_nc(dataframe, infoframe, output_files_dir):
             nc.setncattr(key, value)
 
         nc.close()
+
+        # Python can't store flag_values as bytes. Use ncatted to correct
+        import os
+        nc=netCDF4.Dataset(nc_filepathname, mode='r')
+        qcvars=[v for v in nc.variables.keys() if v.__contains__('_QC')]
+        nc.close()
+
+        for qc_var in qcvars:
+            print(qc_var)
+            os.system('ncatted -O -h -a flag_values,' + qc_var + ',m,b,"0, 1, 2, 3, 4, 5, 6, 7, 8, 9" ' + nc_filepathname)
+
+
         print(nc_filename + ' ' +
               round(os.path.getsize(nc_filepathname)/(1024*1024),2).__str__() +' MB')
 

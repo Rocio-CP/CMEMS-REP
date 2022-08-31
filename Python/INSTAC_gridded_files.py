@@ -34,10 +34,16 @@ def gridded_INSTAC(listgriddedfiles, output_files_dir):
             elif 'decadal' in nc_filename:
                 prefix = '';suffix = '_decade'
 
-            ncfile[prefix + "salinity_ave_weighted" + suffix].setncattr("units", 1)
-            ncfile[prefix + "salinity_ave_unwtd" + suffix].setncattr("units", 1)
-            ncfile[prefix + "salinity_max_unwtd" + suffix].setncattr("units", 1)
-            ncfile[prefix + "salinity_min_unwtd" + suffix].setncattr("units", 1)
+            ncfile.close()
+            os.system('ncatted -O -h -a units,' + prefix + 'salinity_ave_weighted' + suffix + ',m,c,"1" ' + nc_filename)
+            os.system('ncatted -O -h -a units,' + prefix + 'salinity_ave_unwtd' + suffix + ',m,c,"1" ' + nc_filename)
+            os.system('ncatted -O -h -a units,' + prefix + 'salinity_max_unwtd' + suffix + ',m,c,"1" ' + nc_filename)
+            os.system('ncatted -O -h -a units,' + prefix + 'salinity_min_unwtd' + suffix + ',m,c,"1" ' + nc_filename)
+
+#            ncfile[prefix + "salinity_ave_weighted" + suffix].setncattr("units", "1")
+#            ncfile[prefix + "salinity_ave_unwtd" + suffix].setncattr("units", "1")
+#            ncfile[prefix + "salinity_max_unwtd" + suffix].setncattr("units", "1")
+#            ncfile[prefix + "salinity_min_unwtd" + suffix].setncattr("units", "1")
 
         elif 'glodap'.casefold() in nc_filename:
             # Change dimensions variables attributes
@@ -56,7 +62,9 @@ def gridded_INSTAC(listgriddedfiles, output_files_dir):
                     elif ncfile[v].units == 'degrees celcius':
                         ncfile[v].setncattr('units', 'degree_C')
 
-        ncfile.close()
+            ncfile.close()
+
+       # ncfile.close()
 
 
 def gridded_global_attributes_dictionary(nc_filename):
