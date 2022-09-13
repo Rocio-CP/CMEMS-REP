@@ -128,7 +128,6 @@ def build_nc(dataframe, infoframe, output_files_dir):
         nc.close()
 
         for qc_var in qcvars:
-            print(qc_var)
             os.system('ncatted -O -h -a flag_values,' + qc_var + ',m,b,"0, 1, 2, 3, 4, 5, 6, 7, 8, 9" ' + nc_filepathname)
 
 
