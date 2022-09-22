@@ -102,7 +102,10 @@ def read_emodnet_carbon(input_file):
     # create the filter expression (remove lines without carbon measurements)
     carbon_filter_expression = " | ".join(
         f"(df3['{carbon_qvvar}_QV:SEADATANET'] != '9')" for carbon_qvvar in carbon_vars_available)
-    dum = df3.loc[eval(carbon_filter_expression)]
+    dum = df3.loc[eval(carbon_filter_expression)].copy()
+
+    # Column with file source
+    dum['source file']=filepath_emodnet.split('/')[-1]
 
     return dum
 
@@ -129,10 +132,15 @@ for file in emodnet_files:
 
 df4.reset_index(drop=True, inplace=True)
 
+
 lapsed = datetime.datetime.now() - start_time
 print(lapsed.total_seconds() / 60)
 
 # Create a datetime column; if yyyy-mm-ddThh:mm:ss.sss and time_ISO8601, pick the latter.
-# Reorder columns to have the QV flags next to their variables
 
-# Create NetCDF??
+
+
+# Reorder columns to have the QV flags next to their variables
+# Create NetCDF?? Use header_dict (now within the read_emodnet function) for attributes
+
+
