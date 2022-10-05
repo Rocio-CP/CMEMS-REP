@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import re
 
+
 def read_emodnet_carbon(input_file):
     wanted_vars = ['Depth [m]', 'time_ISO8601',
                    'ITS-90 water temperature [degrees C]', 'Water body salinity [per mille]',
@@ -11,6 +12,7 @@ def read_emodnet_carbon(input_file):
     wanted_carbon_vars = ['Water body total alkalinity [mEquiv/l]',
                           'Water body dissolved inorganic carbon [umol/l]',
                           'Water body pH [pH units]']
+    record_index_col = 'CDI-record id'
     header_dict = {}
 
     line = ''
@@ -52,7 +54,7 @@ def read_emodnet_carbon(input_file):
     # If no carbon variables are available, skip to next file
     if len(carbon_vars_available) == 0:
         print('No carbon variables')
-        return
+        return pd.DataFrame(), pd.DataFrame()
 
     # Create dtype dictionary to speed up pd.read_csv. For all variables in the file
     dtype_dict_og = dict(zip([a for a in header_dict.keys() if a != 'DataType'],
@@ -90,13 +92,16 @@ def read_emodnet_carbon(input_file):
     qcvars = [var + '_QV:SEADATANET' for var in vars_available]
     df.rename(columns=dict(zip(df.iloc[:, qcvars_ind].columns, qcvars)), inplace=True)
 
-    # Subset only the columns we need (all metadata + wanted variables)
-    metadata_ind = [df.columns.get_loc(metad) for metad in metadata]
-    df2 = df.loc[:, [*metadata, *vars_available, *qcvars]].copy()
+    # Subset only the columns we need (all metadata / CDI-record id + wanted variables)
+    # metadata_ind = [df.columns.get_loc(metad) for metad in metadata]
+    # cdi_ind=df.columns.get_loc('CDI-record id')
+    df2 = df.loc[:, [record_index_col, 'yyyy-mm-ddThh:mm:ss.sss', *vars_available, *qcvars]].copy()
+    metadata_df = df.loc[~pd.isna(df[record_index_col]), ['yyyy-mm-ddThh:mm:ss.sss',*metadata]]
 
     # Fill the metadata gaps BEFORE selecting the rows with valid carbon data
     df3 = df2.copy()
-    df3.loc[:, metadata] = df3.loc[:, metadata].fillna(method='ffill')
+    df3.loc[:, record_index_col] = df3.loc[:, record_index_col].fillna(method='ffill')
+    df3.loc[:, 'yyyy-mm-ddThh:mm:ss.sss'] = df3.loc[:, 'yyyy-mm-ddThh:mm:ss.sss'].fillna(method='ffill')
 
     # Extract data points with carbon data (regardless of quality, for now)
     # create the filter expression (remove lines without carbon measurements)
@@ -104,10 +109,14 @@ def read_emodnet_carbon(input_file):
         f"(df3['{carbon_qvvar}_QV:SEADATANET'] != '9')" for carbon_qvvar in carbon_vars_available)
     dum = df3.loc[eval(carbon_filter_expression)].copy()
 
-    # Column with file source
-    dum['source file']=filepath_emodnet.split('/')[-1]
+    # Column with file source in the metadata dataframe
+    metadata_df['source file'] = filepath_emodnet.split('/')[-1]
 
-    return dum
+    print(df.shape,dum.shape)
+    print(dum.shape[0]/df.shape[0]*100)
+
+    return dum, metadata_df
+
 
 # Script here
 start_time = datetime.datetime.now()
@@ -123,24 +132,26 @@ emodnet_files = [f for f in os.listdir(emodnet_filespath) if f.startswith('Eutro
 # done
 
 df4 = pd.DataFrame()
+full_metadata_df = pd.DataFrame()
 
+
+emodnet_files=sorted(emodnet_files)
 for file in emodnet_files:
     print(file)
     filepath_emodnet = os.path.join(emodnet_filespath, file)
-    df3 = read_emodnet_carbon(filepath_emodnet)
-    df4 = pd.concat([df4, df3])
+    df3, metadata_df = read_emodnet_carbon(filepath_emodnet)
+    if df3.empty:
+        continue
+    df4 = pd.concat([df4, df3], ignore_index=True)
+    full_metadata_df = pd.concat([full_metadata_df, metadata_df], ignore_index=True)
 
-df4.reset_index(drop=True, inplace=True)
-
+#df4.reset_index(drop=True, inplace=True)
 
 lapsed = datetime.datetime.now() - start_time
 print(lapsed.total_seconds() / 60)
 
-# Create a datetime column; if yyyy-mm-ddThh:mm:ss.sss and time_ISO8601, pick the latter.
+# Create a datetime column; if yyyy-mm-ddThh:mm:ss.sss and time_ISO8601, pick the latter
 
+# Reorder columns to have the QV flags next to their variables (i2)
 
-
-# Reorder columns to have the QV flags next to their variables
 # Create NetCDF?? Use header_dict (now within the read_emodnet function) for attributes
-
-

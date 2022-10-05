@@ -135,8 +135,8 @@ def build_nc(dataframe, infoframe, output_files_dir):
               round(os.path.getsize(nc_filepathname)/(1024*1024),2).__str__() +' MB')
 
         z_counter=z_counter+1
-        if (z_counter > 5):# and 'GLODAP' in nc_filename:
-            break
+        #if (z_counter > 5):# and 'GLODAP' in nc_filename:
+        #    break
 
 
 def create_dimensions(timeval, lat, lon, depth, nc):
