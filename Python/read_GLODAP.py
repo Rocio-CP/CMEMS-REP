@@ -59,9 +59,11 @@ def read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info
         sourcefile=GLODAP_files[0]
         # Read GLODAP file (parse_dates does not work because some hours and minutes are nan)
         tempdf = pd.read_csv(os.path.join(input_files_dir, sourcefile), sep=',',
-                             skiprows=0, na_values='-9999',  # dtype=data_dtype_dict,
+                             skiprows=0, na_values='-9999',
+                             dtype={'G2cruise':'int','G2doi':'str','G2expocode':'str'},# dtype=data_dtype_dict,
                              on_bad_lines='skip')
-        tempdf['EXPOCODE'] = tempdf['G2expocode'].copy()
+        # Remove extra spaces from the expocodes
+        tempdf['EXPOCODE'] = tempdf['G2expocode'].str.strip().copy()
 
     variables_dict = CMEMSdict.generate_variables_dictionary(output_files_dir)
 

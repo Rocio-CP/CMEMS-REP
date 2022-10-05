@@ -56,7 +56,8 @@ for r in reports:
 
 # File checkers
 format_checker_path='/Users/rocio/Dropbox/Projects/CMEMS_INSTAC/current_FormatChecker'
-content_checker_path='/Users/rocio/Documents/GitHub/CMEMS-REP/file-content-checker-main/'
+content_checker_path='/Users/rocio/Downloads/file-content-checker-main/'
+#content_checker_path='/Users/rocio/Documents/GitHub/CMEMS-REP/file-content-checker-main/'
 
 for source in ['socat','glodap']:
     # Format checker
@@ -91,10 +92,10 @@ for source in ['socat','glodap']:
     if os.path.isfile(input_files_dir +"content_check_" + source):
         os.remove(input_files_dir +"content_check_" + source)
 
-    os.system("python3 " + content_checker_path + "Copernicus_InSituTAC_content_checker.py " +
+    os.system("python " + content_checker_path + "Copernicus_InSituTAC_content_checker.py " +
               content_checker_path + "Copernicus_InSituTAC_content_checker.json " +
-              product_dir + "cmems_obs-ins_glo_bgc-car_my_" + source + "-obs_irr/*"
-              " > " + input_files_dir + "content_check_" + source)
+              product_dir + "cmems_obs-ins_glo_bgc-car_my_" + source + "-obs_irr/ " +
+              "> " + input_files_dir + "content_check_" + source)
 
     # CF checker (from IOOS)
     # Can't use CF checker (compliance-checker), because cf-units will not import
