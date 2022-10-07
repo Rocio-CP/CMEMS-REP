@@ -217,6 +217,13 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
         all_attributes['globalatt'][0]["cdm_data_type"] = "profile"
         all_attributes['globalatt'][0]["data_type"] = "OceanSITES vertical profile"
 
+    # Add the DOIS of the individual cruises to the "references" global attribute (as doi.org/---)
+    doi_list = current_expocodes_info['DOI_link']
+    doi_list_nonan = doi_list.loc[doi_list.notna()]
+    if not doi_list_nonan.empty:
+        indiv_dois=' '.join(doi_list_nonan.unique())
+        all_attributes['globalatt'][0]["references"]=all_attributes['globalatt'][0]["references"] + ' ' + indiv_dois
+
     # Remove NaN attributes; substitute with empty string
 
 
