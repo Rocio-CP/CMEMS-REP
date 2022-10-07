@@ -100,7 +100,7 @@ for source in ['socat','glodap']:
     # CF checker (from IOOS)
     # Can't use CF checker (compliance-checker), because cf-units will not import
 
-reports=[f for f in os.listdir(input_files_dir) if f.__contains__('check')]
+reports=[f for f in os.listdir(input_files_dir) if f.__contains__('check') and not f.startswith('.')]
 
 # CHECK if it's status ok or something else (file_compliant in the format checker)
 # try the xml route
@@ -119,7 +119,7 @@ for report_file in reports:
     fail_count=0
     for n in range(0,compliant_tag.length):
         if compliant_tag[n].firstChild.data not in ['yes']:
-            print('FILE '+ report_type +' NOT INSTAC COMPLIANT '+ nc_file_tag[n].firstChild.data)
+            print('FILE '+ report_type +' NOT INSTAC COMPLIANT '+ nc_file_tag[n].firstChild.data.split('/')[-1] + ' ' + compliant_tag[n].firstChild.data)
             fail_count=fail_count+1
 
     if not fail_count:
