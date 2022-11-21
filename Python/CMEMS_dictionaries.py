@@ -211,7 +211,7 @@ def global_attributes_dictionary(current_expocodes_info, current_dataframe, nc_f
     elif 'glodap'.casefold() in nc_filename.casefold():
         all_attributes['globalatt'][0]["title"] = all_attributes['globalatt'][0]["title"] + " - GLODAPv2.2022"
         all_attributes['globalatt'][0]["references"] = all_attributes['globalatt'][0]["references"] + " https://glodap.info"
-        all_attributes['globalatt'][0]["citation"] = all_attributes['globalatt'][0]["citation"] + "  GLODAPv2.2022 is described in Lauvset et al. (2022) DOI MISSING; traceable citations are essential for justifying and sustaining the effort."
+        all_attributes['globalatt'][0]["citation"] = all_attributes['globalatt'][0]["citation"] + "  GLODAPv2.2022 is described in Lauvset et al. (2022) https://doi.org/10.5194/essd-2022-293; traceable citations are essential for justifying and sustaining the effort."
         all_attributes['globalatt'][0]["doi"] = "https://doi.org/10.25921/1f4w-0t92"
 
         all_attributes['globalatt'][0]["cdm_data_type"] = "profile"

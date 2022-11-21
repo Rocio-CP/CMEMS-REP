@@ -6,6 +6,9 @@ shopt -s nullglob
 # Loop counter. Used to add seconds to the DNT timestamp if two are created at the same time 
 indcount=0
 
+# Release appended code
+release="202211"
+
 # Folder structure
 cd /Users/rocio/Documents/templocal/CARBON_REP_202212/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050/
 for dataset in */
@@ -13,6 +16,9 @@ do
 
 # Skip DNT folders
 if [[ ${dataset} == *"DNT"*  ]]; then
+continue
+fi
+if [[ ${dataset} == *"obs_irr"*  ]]; then
 continue
 fi
 
@@ -30,10 +36,12 @@ fi
 
 echo "<?xml version=\"1.0\" ?>" > ./DNT/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050_P${datetimenow}.xml
 echo "<delivery PushingEntity=\"CopernicusMarine-InSitu-Global\" date=\"${datetimenow}\" product=\"INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050\">" >> ./DNT/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050_P${datetimenow}.xml
-echo $'\t'"<dataset DatasetName=\"${dataset%%/*}_201904\">" >> ./DNT/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050_P${datetimenow}.xml
+echo $'\t'"<dataset DatasetName=\"${dataset%%/*}_${release}\">" >> ./DNT/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050_P${datetimenow}.xml
 
-for f in ${dataset}*/*.nc
+for f in ${dataset}/*.nc
 do checksum=$(md5 $f | cut -d\  -f4)
+echo $f
+echo $'\t'$'\t'"<file Checksum=\"${checksum}\" FileName=\"$(echo $f | cut -d/ -f2-3)\" FinalStatus=\"Delivered\" StartUploadTime=\"${datetimestart}\" StopUploadTime=\"${datetimestop}\"/>"
 echo $'\t'$'\t'"<file Checksum=\"${checksum}\" FileName=\"$(echo $f | cut -d/ -f2-3)\" FinalStatus=\"Delivered\" StartUploadTime=\"${datetimestart}\" StopUploadTime=\"${datetimestop}\"/>" >> ./DNT/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050_P${datetimenow}.xml
 done
 
