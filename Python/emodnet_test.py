@@ -19,7 +19,7 @@ def read_emodnet_carbon(input_file):
     headerlines = -1
     headertext = "Cruise\tStation\tType"
 
-    f = open(filepath_emodnet)
+    f = open(filepath_emodnet, encoding='utf-8') # Force the encoding!
 
     while headertext not in line:
         line = f.readline()
@@ -28,7 +28,7 @@ def read_emodnet_carbon(input_file):
             header_dict['DataType'] = re.search('>([a-zA-Z]+?)<', line).group(1)
 
         # Split the info on each variable into a dictionary key:value
-        if (line.startswith('//<MetaVariable>')) | (line.startswith('//<DataVariable>')):
+        elif (line.startswith('//<MetaVariable>')) | (line.startswith('//<DataVariable>')):
             temp_header_dict = {}
             temp_header_dict['type'] = re.search('<(.+?)>', line).group(1)
             # regex key:val
@@ -36,7 +36,9 @@ def read_emodnet_carbon(input_file):
             reg_search_match = reg_search.findall(line)
             for l in reg_search_match:
                 temp_header_dict[l[0]] = l[1]
+
             header_dict[temp_header_dict['label']] = temp_header_dict
+
 
         headerlines = headerlines + 1
 
@@ -110,7 +112,8 @@ def read_emodnet_carbon(input_file):
     dum = df3.loc[eval(carbon_filter_expression)].copy()
 
     # Column with file source in the metadata dataframe
-    metadata_df['source file'] = filepath_emodnet.split('/')[-1]
+    metadata_df['source file'] = os.path.basename(filepath_emodnet)
+    #metadata_df['source file'] = filepath_emodnet.split('/')[-1]
 
     print(df.shape,dum.shape)
     print(dum.shape[0]/df.shape[0]*100)
@@ -121,7 +124,8 @@ def read_emodnet_carbon(input_file):
 # Script here
 start_time = datetime.datetime.now()
 
-emodnet_filespath = '/Users/rocio/Documents/templocal/emodnetchem/'
+emodnet_filespath = os.path.join('G:\projects_tasks\INSTAC_carbon\pre-2023\Phase_II\emodnetchem')
+#emodnet_filespath = '/Users/rocio/Documents/templocal/emodnetchem/'
 emodnet_files = [f for f in os.listdir(emodnet_filespath) if f.startswith('Eutrophication_')]
 
 # Med_profiles and timeseries has several lines with extra tab (109 cols vs 108 / 105 vs 104) Run a quick bash script to find those lines with 109 cols. Remove extra tabs manually
@@ -138,6 +142,7 @@ full_metadata_df = pd.DataFrame()
 emodnet_files=sorted(emodnet_files)
 for file in emodnet_files:
     print(file)
+        
     filepath_emodnet = os.path.join(emodnet_filespath, file)
     df3, metadata_df = read_emodnet_carbon(filepath_emodnet)
     if df3.empty:

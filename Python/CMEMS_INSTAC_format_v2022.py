@@ -4,8 +4,11 @@ import read_GLODAP
 import INSTAC_gridded_files
 
 # Stablish where the files are / should be
-input_files_dir = '/Users/rocio/Documents/templocal/CARBON_REP_202212/'
-product_dir = '/Users/rocio/Documents/templocal/CARBON_REP_202212/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050/'
+#input_files_dir = '/Users/rocio/Documents/templocal/CARBON_REP_202212/'
+#product_dir = '/Users/rocio/Documents/templocal/CARBON_REP_202212/INSITU_GLO_BGC_CARBON_DISCRETE_MY_013_050/'
+input_files_dir ='./input_files/'
+product_dir = './output/'
+
 # Create and store output directory.
 if not os.path.isdir(product_dir):
     os.makedirs(os.path.join(product_dir, 'DNT/'))
@@ -33,6 +36,7 @@ GLODAP_info_file = 'GLODAPv22022CMEMS.tsv'
 output_files_dir = os.path.join(product_dir, 'cmems_obs-ins_glo_bgc-car_my_glodap-obs_irr/')
 
 read_GLODAP.read_GLODAP_obs(input_files_dir, output_files_dir, GLODAP_files, GLODAP_info_file)
+
 
 # Gridded files SOCAT
 listgriddedfiles=[os.path.join(input_files_dir,x) for x in os.listdir(input_files_dir) if 'gridded' in x]

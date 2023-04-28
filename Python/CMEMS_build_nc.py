@@ -8,6 +8,7 @@ def build_nc(dataframe, infoframe, output_files_dir):
     unique_platform_codes = infoframe['PlatformCode'].unique()
 
     z_counter=0
+    
     for pc in unique_platform_codes:
         # Create boolean filters for
         filter_expocodes = infoframe['PlatformCode'] == pc
@@ -39,10 +40,10 @@ def build_nc(dataframe, infoframe, output_files_dir):
             if platform_type in ['31', '32', '37']:
                 platform_type_folder = 'CO'
             elif platform_type in ['3B']:
-                if 'SD' in platform_name:
-                    platform_type_folder = 'GL'
-                elif 'WG' in platform_name:
+                if 'SD' in platform_name.item():
                     platform_type_folder = 'SD'
+                elif 'WG' in platform_name.item():
+                    platform_type_folder = 'GL'
             elif platform_type in ['41']:
                 platform_type_folder = 'MO'
             elif platform_type in ['42']:
@@ -122,11 +123,9 @@ def build_nc(dataframe, infoframe, output_files_dir):
         nc.close()
 
         # Python can't store flag_values as bytes. Use ncatted to correct
-        import os
         nc=netCDF4.Dataset(nc_filepathname, mode='r')
         qcvars=[v for v in nc.variables.keys() if v.__contains__('_QC')]
         nc.close()
-
         for qc_var in qcvars:
             os.system('ncatted -O -h -a flag_values,' + qc_var + ',m,b,"0, 1, 2, 3, 4, 5, 6, 7, 8, 9" ' + nc_filepathname)
 
@@ -134,9 +133,8 @@ def build_nc(dataframe, infoframe, output_files_dir):
         print(nc_filename + ' ' +
               round(os.path.getsize(nc_filepathname)/(1024*1024),2).__str__() +' MB')
 
+
         z_counter=z_counter+1
-        #if (z_counter > 5):# and 'GLODAP' in nc_filename:
-        #    break
 
 
 def create_dimensions(timeval, lat, lon, depth, nc):
